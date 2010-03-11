@@ -156,16 +156,44 @@ class PlotFrame(wxmpl.PlotFrame):
 
 class SelectColumnsFrame(wx.Frame):
     def __init__(self, parent, id, title, app, **kwargs):
-        wx.Frame.__init__(self, parent, id, title, **kwargs)
-
         self.app = app
 
-        # axes selector
-        columns = "a b c".split()
-        xAxisCombo = wx.ComboBox(self, choices=columns, style=wx.CB_DROPDOWN)
-        yAxisCombo = wx.ComboBox(self, choices=columns, style=wx.CB_DROPDOWN)
+        wx.Frame.__init__(self, parent, id, title, **kwargs)
 
-        # on save, replot
+        # use GridBagSizer
+        grid = wx.GridBagSizer(hgap=5, vgap=5)
+
+        # ROI selector
+        item = wx.StaticText(self, label="ROI:")
+        grid.Add(item, pos=(0, 0))
+
+        choices = [str(roi) for roi in app.rois.keys()]
+        value = str(app.plot_opts["roi_number"])
+        self.roi_combo = wx.ComboBox(self, value=value, choices=choices)
+        grid.Add(self.roi_combo, pos=(0, 1))
+
+        # save button
+        self.save_button = wx.Button(self, label="Save")
+        self.Bind(wx.EVT_BUTTON, self.OnSaveClick, self.save_button)
+        grid.Add(self.save_button, pos=(1, 0))
+
+        # cancel button
+        self.cancel_button = wx.Button(self, label="Cancel")
+        self.Bind(wx.EVT_BUTTON, self.OnCancelClick, self.cancel_button)
+        grid.Add(self.cancel_button, pos=(1, 1))
+
+        self.SetSizerAndFit(grid)
+
+    def OnSaveClick(self, e):
+        # set ROI
+        roi = int(self.roi_combo.GetValue())
+
+        self.app.change_plot(roi_number=roi)
+
+        self.Close(True)
+
+    def OnCancelClick(self, e):
+        self.Close(True)
 
 class PlotApp(wxmpl.PlotApp):
     def __init__(self, filename=None, **kwargs):
