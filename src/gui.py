@@ -287,5 +287,4 @@ class PlotApp(wxmpl.PlotApp):
                 roi = int(match.group(1))
                 rois.setdefault(roi, []).append(col)
 
-        print rois
         return rois
