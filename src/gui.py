@@ -238,6 +238,7 @@ class PlotApp(wxmpl.PlotApp):
 
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
              roi_number=0):
+
         # fetch x
         try:
             x_col = self.data.getColumn(x_name)
@@ -250,15 +251,15 @@ class PlotApp(wxmpl.PlotApp):
         except xdp.ColumnNameError:
             fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
 
-        # find the corrected ROIs
-        roipat = re.compile('corr_roi[0-9]+_%d' % roi_number)
-        rois   = [x for x in self.data.getColumnNames() if roipat.match(x) is not None]
-        if not rois:
+        # determine the columns to plot
+        # FIXME: support user-specified columns
+        columns = self.rois[roi_number]
+        if not columns:
             fatal_error('`%s\' contains no data for ROI %d',
                 os.path.basename(fileName), roi_number)
 
         # calculate z
-        zExpr = '+'.join(['$'+x for x in rois])
+        zExpr = '+'.join(['$'+x for x in columns])
         if normalize:
             if self.data.hasColumn(z_name):
                 zExpr = '(%s)/$%s' % (zExpr, z_name)
@@ -298,6 +299,7 @@ class PlotApp(wxmpl.PlotApp):
         self.plot_opts["normalize"] = normalize
         self.plot_opts["colormap"] = colormap
         self.plot_opts["roi_number"] = roi_number
+        self.plot_opts["columns"] = columns
 
     def change_plot(self, **kwargs):
         opts = copy.copy(self.plot_opts)
