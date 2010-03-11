@@ -167,22 +167,38 @@ class SelectColumnsFrame(wx.Frame):
         item = wx.StaticText(self, label="ROI:")
         grid.Add(item, pos=(0, 0))
 
-        choices = [str(roi) for roi in app.rois.keys()]
+        rois = [str(roi) for roi in app.rois.keys()]
         value = str(app.plot_opts["roi_number"])
-        self.roi_combo = wx.ComboBox(self, value=value, choices=choices)
+        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
         grid.Add(self.roi_combo, pos=(0, 1))
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
+
+        # column selection
+        self.columns_box = wx.ListBox(self, style=wx.LB_MULTIPLE)
+        grid.Add(self.columns_box, pos=(1, 1))
+        self._set_columns(roi_number=int(self.roi_combo.GetValue()))
 
         # save button
         self.save_button = wx.Button(self, label="Save")
         self.Bind(wx.EVT_BUTTON, self.OnSaveClick, self.save_button)
-        grid.Add(self.save_button, pos=(1, 0))
+        grid.Add(self.save_button, pos=(2, 0))
 
         # cancel button
         self.cancel_button = wx.Button(self, label="Cancel")
         self.Bind(wx.EVT_BUTTON, self.OnCancelClick, self.cancel_button)
-        grid.Add(self.cancel_button, pos=(1, 1))
+        grid.Add(self.cancel_button, pos=(2, 1))
 
         self.SetSizerAndFit(grid)
+
+    def _set_columns(self, roi_number):
+        columns = self.app.rois[roi_number]
+        self.columns_box.Set(columns)
+
+        # select columns that are currently active
+        selected_columns = dict((k, 1) for k in self.app.plot_opts["columns"])
+        for i, v in enumerate(columns):
+            if v in selected_columns:
+                self.columns_box.SetSelection(i)
 
     def OnSaveClick(self, e):
         # set ROI
@@ -194,6 +210,10 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnCancelClick(self, e):
         self.Close(True)
+
+    def OnSelectROI(self, e):
+        roi_number = int(self.roi_combo.GetValue())
+        self._set_columns(roi_number)
 
 class PlotApp(wxmpl.PlotApp):
     def __init__(self, filename=None, **kwargs):
