@@ -1,3 +1,4 @@
+import copy
 import re
 import sys
 
@@ -260,6 +261,8 @@ class PlotApp(wxmpl.PlotApp):
                 extent=extent)
         cb = fig.colorbar(img, cax=None, orientation='vertical')
 
+        axes.figure.canvas.draw()
+
         # save current plot parameters for later retrieval
         self.plot_opts["x_name"] = x_name
         self.plot_opts["y_name"] = y_name
@@ -267,6 +270,11 @@ class PlotApp(wxmpl.PlotApp):
         self.plot_opts["normalize"] = normalize
         self.plot_opts["colormap"] = colormap
         self.plot_opts["roi_number"] = roi_number
+
+    def change_plot(self, **kwargs):
+        opts = copy.copy(self.plot_opts)
+        opts.update(kwargs)
+        self.plot(**opts)
 
     def __parse_rois(self, columns):
         roi_re = re.compile(r"corr_roi\d+_(\d+)")
