@@ -193,6 +193,7 @@ class SelectColumnsFrame(wx.Frame):
     def _set_columns(self, roi_number):
         columns = self.app.rois[roi_number]
         self.columns_box.Set(columns)
+        self.columns = columns
 
         # select columns that are currently active
         selected_columns = dict((k, 1) for k in self.app.plot_opts["columns"])
@@ -201,10 +202,14 @@ class SelectColumnsFrame(wx.Frame):
                 self.columns_box.SetSelection(i)
 
     def OnSaveClick(self, e):
-        # set ROI
         roi = int(self.roi_combo.GetValue())
 
-        self.app.change_plot(roi_number=roi)
+        columns = self.columns_box.GetSelections()
+        column_names = []
+        for col in columns:
+            column_names.append(self.columns[col])
+
+        self.app.change_plot(roi_number=roi, columns=column_names)
 
         self.Close(True)
 
@@ -257,7 +262,7 @@ class PlotApp(wxmpl.PlotApp):
         return True
 
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0):
+             roi_number=0, columns=None):
 
         # fetch x
         try:
@@ -271,12 +276,12 @@ class PlotApp(wxmpl.PlotApp):
         except xdp.ColumnNameError:
             fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
 
-        # determine the columns to plot
-        # FIXME: support user-specified columns
-        columns = self.rois[roi_number]
-        if not columns:
-            fatal_error('`%s\' contains no data for ROI %d',
-                os.path.basename(fileName), roi_number)
+        # determine the columns to plot if no columns were specified
+        if columns is None:
+            columns = self.rois[roi_number]
+            if not columns:
+                fatal_error('`%s\' contains no data for ROI %d',
+                    os.path.basename(fileName), roi_number)
 
         # calculate z
         zExpr = '+'.join(['$'+x for x in columns])
