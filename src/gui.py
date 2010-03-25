@@ -92,6 +92,10 @@ def fatal_error(msg, *args):
 
 
 class PlotFrame(wxmpl.PlotFrame):
+    def __init__(self, app, **kwargs):
+        self.app = app
+        wxmpl.PlotFrame.__init__(self, **kwargs)
+
     def create_menus(self):
         # menu bar
         menuBar = wx.MenuBar()
@@ -145,13 +149,16 @@ class PlotFrame(wxmpl.PlotFrame):
         self.Bind(wx.EVT_MENU, self.OnMenuHelpAbout, item)
 
     def OnMenuSelectColumns(self, evt):
-        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY, title="Select Columns")
+        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY,
+            title="Select Columns", app=self.app)
         frame.Show(True)
 
 class SelectColumnsFrame(wx.Frame):
-    def __init__(self, parent, id, title, **kwargs):
+    def __init__(self, parent, id, title, app, **kwargs):
         wx.Frame.__init__(self, parent, id, title, **kwargs)
-        
+
+        self.app = app
+
         # axes selector
         columns = "a b c".split()
         xAxisCombo = wx.ComboBox(self, choices=columns, style=wx.CB_DROPDOWN)
@@ -180,9 +187,11 @@ class PlotApp(wxmpl.PlotApp):
         wxmpl.PlotApp.__init__(self, **kwargs)
 
     def OnInit(self):
-        self.frame = panel = PlotFrame(None, -1, self.title, self.size,
-            self.dpi, self.cursor, self.location, self.crosshairs,
-            self.selection, self.zoom)
+        self.frame = panel = PlotFrame(parent=None, id=wx.ID_ANY,
+            title=self.title, size=self.size, dpi=self.dpi,
+            cursor=self.cursor, location=self.location,
+            crosshairs=self.crosshairs, selection=self.selection,
+            zoom=self.zoom, app=self)
 
         if self.ABOUT_TITLE is not None:
             panel.ABOUT_TITLE = self.ABOUT_TITLE
