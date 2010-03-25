@@ -57,7 +57,7 @@
 
 
 import wx
-import wxmpl
+import gui as wxmpl
 import matplotlib.cm
 import matplotlib.numerix as nx
 import optparse
