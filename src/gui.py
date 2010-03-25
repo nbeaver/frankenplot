@@ -187,6 +187,8 @@ class PlotApp(wxmpl.PlotApp):
         self.columns = self.data.getColumnNames()
         self.rois = self.__parse_rois(self.columns)
 
+        self.plot_opts = dict()
+
         wxmpl.PlotApp.__init__(self, **kwargs)
 
     def OnInit(self):
@@ -257,6 +259,14 @@ class PlotApp(wxmpl.PlotApp):
                 origin='lower', aspect='equal', interpolation='nearest',
                 extent=extent)
         cb = fig.colorbar(img, cax=None, orientation='vertical')
+
+        # save current plot parameters for later retrieval
+        self.plot_opts["x_name"] = x_name
+        self.plot_opts["y_name"] = y_name
+        self.plot_opts["z_name"] = z_name
+        self.plot_opts["normalize"] = normalize
+        self.plot_opts["colormap"] = colormap
+        self.plot_opts["roi_number"] = roi_number
 
     def __parse_rois(self, columns):
         roi_re = re.compile(r"corr_roi\d+_(\d+)")
