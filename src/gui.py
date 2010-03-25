@@ -172,6 +172,7 @@ class SelectColumnsFrame(wx.Frame):
         self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
         grid.Add(self.roi_combo, pos=(0, 1))
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
 
         # column selection
         self.columns_box = wx.ListBox(self, style=wx.LB_MULTIPLE)
