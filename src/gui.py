@@ -44,7 +44,7 @@ class PlotFrame(wxmpl.PlotFrame):
 
         item = editMenu.Append(wx.ID_ANY, "&Columns...",
             "Select displayed columns")
-        self.Bind(wx.EVT_MENU, self.OnMenuEditColumns, item)
+        self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
 
         # Help menu
         helpMenu = wx.Menu()
@@ -54,11 +54,20 @@ class PlotFrame(wxmpl.PlotFrame):
             'Display version information')
         self.Bind(wx.EVT_MENU, self.OnMenuHelpAbout, item)
 
-    def OnMenuEditColumns(self, evt):
-        pass
+    def OnMenuSelectColumns(self, evt):
+        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY, title="Select Columns")
+        frame.Show(True)
 
-class EditColumnsFrame(wx.Frame):
-    pass
+class SelectColumnsFrame(wx.Frame):
+    def __init__(self, parent, id, title, **kwargs):
+        wx.Frame.__init__(self, parent, id, title, **kwargs)
+        
+        # axes selector
+        columns = "a b c".split()
+        xAxisCombo = wx.ComboBox(self, choices=columns, style=wx.CB_DROPDOWN)
+        yAxisCombo = wx.ComboBox(self, choices=columns, style=wx.CB_DROPDOWN)
+
+        # on save, replot
 
 class PlotApp(wxmpl.PlotApp):
     def OnInit(self):
