@@ -267,6 +267,7 @@ class PlotApp(wxmpl.PlotApp):
             match = search(col)
             if match:
                 roi = int(match.group(1))
-                rois[roi] = True
+                rois.setdefault(roi, []).append(col)
 
-        return sorted(rois.keys())
+        print rois
+        return rois
