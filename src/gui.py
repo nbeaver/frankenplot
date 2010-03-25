@@ -184,6 +184,9 @@ class PlotApp(wxmpl.PlotApp):
             self.hdr = None
             self.data = None
 
+        self.columns = self.data.getColumnNames()
+        self.rois = self.__parse_rois(self.columns)
+
         wxmpl.PlotApp.__init__(self, **kwargs)
 
     def OnInit(self):
@@ -254,3 +257,16 @@ class PlotApp(wxmpl.PlotApp):
                 origin='lower', aspect='equal', interpolation='nearest',
                 extent=extent)
         cb = fig.colorbar(img, cax=None, orientation='vertical')
+
+    def __parse_rois(self, columns):
+        roi_re = re.compile(r"corr_roi\d+_(\d+)")
+        rois = dict()
+
+        search = roi_re.search
+        for col in columns:
+            match = search(col)
+            if match:
+                roi = int(match.group(1))
+                rois[roi] = True
+
+        return sorted(rois.keys())
