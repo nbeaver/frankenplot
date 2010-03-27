@@ -279,9 +279,24 @@ class SelectColumnsFrame(wx.Frame):
     def __init__(self, parent, id, title, app, **kwargs):
         self.app = app
 
-        wx.Frame.__init__(self, parent, id, title, **kwargs)
+        wx.Frame.__init__(self, parent, id, title, size=(500, 500), **kwargs)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # ROI selector
+        box = wx.StaticBox(self, label="Quick Select")
+        roi_selector_sizer = wx.StaticBoxSizer(box, orient=wx.HORIZONTAL)
+        main_sizer.Add(roi_selector_sizer, flag=wx.EXPAND)
+
+        roi_selector_sizer.Add(wx.StaticText(self, label="ROI: "),
+                flag=wx.ALIGN_CENTER_VERTICAL)
+
+        rois = [str(roi) for roi in app.rois.keys()]
+        value = str(app.plot_opts["roi_number"])
+        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
+        roi_selector_sizer.Add(self.roi_combo)
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
 
         # column filter
         self.column_filter = wx.TextCtrl(self, size=(200, 27.5))
@@ -312,17 +327,6 @@ class SelectColumnsFrame(wx.Frame):
                                              size=size)
         self.Bind(wx.EVT_BUTTON, self.OnDeselectAll, self.deselect_all_button)
         col_buttons_sizer.Add(self.deselect_all_button)
-
-        # ROI selector
-#        item = wx.StaticText(self, label="ROI:")
-#        grid.Add(item, pos=(0, 0))
-
-        rois = [str(roi) for roi in app.rois.keys()]
-        value = str(app.plot_opts["roi_number"])
-        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
-        main_sizer.Add(self.roi_combo)
-        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
 
         # buttons
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
