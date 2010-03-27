@@ -345,6 +345,15 @@ class SelectColumnsFrame(wx.Frame):
         self.Bind(wx.EVT_COMBOBOX, self.OnFilterROI, self.roi_filter)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnFilterROI, self.roi_filter)
 
+        # ROI selector
+        qs_sizer.Add(wx.StaticText(self, label="Select ROI:"),
+                             flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.roi_selector = wx.ComboBox(self, choices=rois)
+        qs_sizer.Add(self.roi_selector)
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_selector)
+
         # buttons
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer.Add(buttons_sizer)
@@ -377,7 +386,7 @@ class SelectColumnsFrame(wx.Frame):
         self.columns_list.SetItemStrings(columns)
 
     def OnSaveClick(self, e):
-        roi = int(self.roi_combo.GetValue())
+        roi = int(self.roi_select.GetValue())
         columns = [c.GetText() for c in self.columns_list.GetCheckedItems()]
 
         self.app.change_plot(roi_number=roi, columns=columns)
@@ -397,6 +406,20 @@ class SelectColumnsFrame(wx.Frame):
         roi_number = int(self.roi_filter.GetValue())
         pattern = "corr_roi*_%d" % (roi_number)
         self.column_filter.SetValue(pattern)
+
+    def OnSelectROI(self, e):
+        roi_number = int(self.roi_selector.GetValue())
+
+        self.column_filter.SetValue("")
+        self.columns_list.UncheckAll()
+
+        # FIXME: move pattern elsewhere
+        pattern = "corr_roi*%d" % (roi_number)
+
+        # FIXME: don't use CheckListCtrl._items; possibly implement
+        # CheckListCtrl.FilterByPattern()?
+        columns = fnmatch.filter(self.columns_list._items.keys(), pattern)
+        self.columns_list.CheckItemStrings(columns)
 
     def _OnUpdateFilter(self, e):
         pattern = self.column_filter.GetValue()
