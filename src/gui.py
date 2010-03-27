@@ -192,6 +192,10 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def AppendStringItem(self, label, check=True):
         return CheckListCtrl.InsertStringItem(self, sys.maxint, label, check)
 
+    def CheckAll(self):
+        for id, item in self:
+            self.CheckItem(id, check=True)
+
     def ClearAll(self):
         self._reset()
         wx.ListCtrl.ClearAll(self)
@@ -255,6 +259,10 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
             if item in wanted_items:
                 self.AppendStringItem(item, checked)
 
+    def UncheckAll(self):
+        for id, item in self:
+            self.CheckItem(id, check=False)
+
     def _OnSelect(self, e):
         id = e.GetIndex()
         self.ToggleItem(id)
@@ -284,6 +292,21 @@ class SelectColumnsFrame(wx.Frame):
         self.columns_list.InsertColumn(0, "Data Column")
         self._set_columns_list()
         col_sizer.Add(self.columns_list)
+
+        # select/deselect all buttons
+        col_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
+        col_sizer.Add(col_buttons_sizer)
+
+        size = (90, 30)
+        self.select_all_button = wx.Button(self, label="Select All",
+                                           size=size)
+        self.Bind(wx.EVT_BUTTON, self.OnSelectAll, self.select_all_button)
+        col_buttons_sizer.Add(self.select_all_button)
+
+        self.deselect_all_button = wx.Button(self, label="Deselect All",
+                                             size=size)
+        self.Bind(wx.EVT_BUTTON, self.OnDeselectAll, self.deselect_all_button)
+        col_buttons_sizer.Add(self.deselect_all_button)
 
         # ROI selector
 #        item = wx.StaticText(self, label="ROI:")
@@ -337,6 +360,12 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnCancelClick(self, e):
         self.Close(True)
+
+    def OnDeselectAll(self, e):
+        self.columns_list.UncheckAll()
+
+    def OnSelectAll(self, e):
+        self.columns_list.CheckAll()
 
     def OnSelectROI(self, e):
         roi_number = int(self.roi_combo.GetValue())
