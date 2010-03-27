@@ -192,7 +192,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def AppendStringItem(self, label, check=True):
         return CheckListCtrl.InsertStringItem(self, sys.maxint, label, check)
 
-    def CheckAll(self):
+    def CheckAllShown(self):
         for id, item in self:
             self.CheckItem(id, check=True)
 
@@ -265,6 +265,14 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
                 self.AppendStringItem(item, checked)
 
     def UncheckAll(self):
+        for label in self._items:
+            id = self.FindItem(-1, label)
+            if id == -1:
+                self._items[label] = False
+            else:
+                self.CheckItem(id, check=False)
+
+    def UncheckAllShown(self):
         for id, item in self:
             self.CheckItem(id, check=False)
 
@@ -371,10 +379,10 @@ class SelectColumnsFrame(wx.Frame):
         self.Close(True)
 
     def OnDeselectAll(self, e):
-        self.columns_list.UncheckAll()
+        self.columns_list.UncheckAllShown()
 
     def OnSelectAll(self, e):
-        self.columns_list.CheckAll()
+        self.columns_list.CheckAllShown()
 
     def OnSelectROI(self, e):
         roi_number = int(self.roi_combo.GetValue())
