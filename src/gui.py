@@ -268,43 +268,53 @@ class SelectColumnsFrame(wx.Frame):
 
         wx.Frame.__init__(self, parent, id, title, **kwargs)
 
-        # use GridBagSizer
-        grid = wx.GridBagSizer(hgap=5, vgap=5)
-
-        # ROI selector
-        item = wx.StaticText(self, label="ROI:")
-        grid.Add(item, pos=(0, 0))
-
-        rois = [str(roi) for roi in app.rois.keys()]
-        value = str(app.plot_opts["roi_number"])
-        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
-        grid.Add(self.roi_combo, pos=(0, 1))
-        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # column filter
         self.column_filter = wx.TextCtrl(self, size=(200, 27.5))
         self.column_filter.SetFocus()
-        grid.Add(self.column_filter, pos=(1, 1))
         self.Bind(wx.EVT_TEXT, self._OnUpdateFilter, self.column_filter)
+        main_sizer.Add(self.column_filter)
 
         # column selection
+        col_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(col_sizer)
+
         self.columns_list = CheckListCtrl(self, size=(200, 300))
         self.columns_list.InsertColumn(0, "Data Column")
         self._set_columns_list()
-        grid.Add(self.columns_list, pos=(2, 1))
+        col_sizer.Add(self.columns_list)
+
+        # ROI selector
+#        item = wx.StaticText(self, label="ROI:")
+#        grid.Add(item, pos=(0, 0))
+
+        rois = [str(roi) for roi in app.rois.keys()]
+        value = str(app.plot_opts["roi_number"])
+        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
+        main_sizer.Add(self.roi_combo)
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
+
+        # buttons
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer.Add(buttons_sizer)
 
         # save button
         self.save_button = wx.Button(self, label="Save")
         self.Bind(wx.EVT_BUTTON, self.OnSaveClick, self.save_button)
-        grid.Add(self.save_button, pos=(3, 0))
+        buttons_sizer.Add(self.save_button)
 
         # cancel button
         self.cancel_button = wx.Button(self, label="Cancel")
         self.Bind(wx.EVT_BUTTON, self.OnCancelClick, self.cancel_button)
-        grid.Add(self.cancel_button, pos=(3, 1))
+        buttons_sizer.Add(self.cancel_button)
 
-        self.SetSizer(grid)
+
+        self.SetSizer(main_sizer)
+        self.SetAutoLayout(True)
+        main_sizer.Fit(self)
+        self.Show()
 
     def _set_columns_list(self):
         columns = dict()
