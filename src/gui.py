@@ -295,13 +295,9 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnSaveClick(self, e):
         roi = int(self.roi_combo.GetValue())
+        columns = [c.GetText() for c in self.columns_list.GetCheckedItems()]
 
-        columns = self.columns_box.GetSelections()
-        column_names = []
-        for col in columns:
-            column_names.append(self.columns[col])
-
-        self.app.change_plot(roi_number=roi, columns=column_names)
+        self.app.change_plot(roi_number=roi, columns=columns)
 
         self.Close(True)
 
