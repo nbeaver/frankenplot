@@ -156,6 +156,24 @@ class PlotFrame(wxmpl.PlotFrame):
         frame.Show(True)
 
 class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
+    class CheckListCtrlIterator(object):
+        def __init__(self, coll, i=0):
+            self.coll = coll
+            self.i = i
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            item = self.coll.GetNextItem(self.i-1, wx.LIST_NEXT_ALL)
+
+            if item == -1:
+                raise StopIteration
+            else:
+                self.i += 1
+                return self.i-1, self.coll.GetItem(item)
+
+
     def __init__(self, parent, **kwargs):
         style = kwargs.pop("style", wx.LC_REPORT | wx.SUNKEN_BORDER |
                            wx.LC_NO_HEADER)
@@ -166,6 +184,9 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self._OnSelect, self)
 
         self._reset()
+
+    def __iter__(self):
+        return self.CheckListCtrlIterator(self)
 
     def AppendStringItem(self, label, check=True):
         return CheckListCtrl.InsertStringItem(self, sys.maxint, label, check)
@@ -183,10 +204,10 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         wx.ListCtrl.DeleteItem(item_id)
 
     def GetCheckedItems(self):
-        pass
+        return [item for (id, item) in self if self.IsChecked(id)]
 
     def GetItems(self):
-        pass
+        return [item for (id, item) in self]
 
 #    def InsertImageStringItem(self, *args, **kwargs):
 #        raise NotImplementedError
