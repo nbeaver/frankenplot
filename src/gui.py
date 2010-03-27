@@ -93,6 +93,15 @@ def fatal_error(msg, *args):
         print >> sys.stderr, '%s: %s' % (os.path.basename(sys.argv[0]), msg)
     sys.exit(1)
 
+def natural_sort(lst):
+    """Sort a list in natural, human order
+
+    Based on: http://nedbatchelder.com/blog/200712/human_sorting.html"""
+
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(lst, key=alphanum_key)
+
 
 class PlotFrame(wxmpl.PlotFrame):
     def __init__(self, app, **kwargs):
@@ -254,7 +263,10 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def SetItemStrings(self, labels):
         self.DeleteAllItems()
 
-        for label, checked in sorted(labels.iteritems()):
+        # FIXME: there is a better way to do this
+        keys = natural_sort(labels.keys())
+        for label in keys:
+            checked = labels[label]
             id = self.AppendStringItem(label, checked)
 
         self._items = labels
