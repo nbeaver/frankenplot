@@ -267,10 +267,8 @@ class SelectColumnsFrame(wx.Frame):
         # column selection
         self.columns_list = CheckListCtrl(self, size=(200, 300))
         self.columns_list.InsertColumn(0, "Data Column")
+        self._set_columns_list()
         grid.Add(self.columns_list, pos=(1, 1))
-
-        columns = dict((k, True) for k in self.app.data.getColumnNames())
-        self.columns_list.SetItemStrings(columns)
 
         # save button
         self.save_button = wx.Button(self, label="Save")
@@ -284,16 +282,16 @@ class SelectColumnsFrame(wx.Frame):
 
         self.SetSizer(grid)
 
-    def _set_columns(self, roi_number):
-        columns = self.app.rois[roi_number]
-        self.columns_box.Set(columns)
-        self.columns = columns
+    def _set_columns_list(self):
+        columns = dict()
+        for col in self.app.data.getColumnNames():
+            # FIXME: don't hardcode "corr_roi"
+            if not col.startswith("corr_roi"):
+                continue
 
-        # select columns that are currently active
-        selected_columns = dict((k, 1) for k in self.app.plot_opts["columns"])
-        for i, v in enumerate(columns):
-            if v in selected_columns:
-                self.columns_box.SetSelection(i)
+            columns[col] = col in self.app.plot_opts["columns"]
+
+        self.columns_list.SetItemStrings(columns)
 
     def OnSaveClick(self, e):
         roi = int(self.roi_combo.GetValue())
