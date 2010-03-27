@@ -258,11 +258,9 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
 
     def ShowItemStrings(self, wanted_items):
         wx.ListCtrl.DeleteAllItems(self)
-        wanted_items = dict((k, True) for k in wanted_items)
 
-        for item, checked in sorted(self._items.iteritems()):
-            if item in wanted_items:
-                self.AppendStringItem(item, checked)
+        for label in wanted_items:
+            self.AppendStringItem(label, check=self._items[label])
 
     def UncheckAll(self):
         for label in self._items:
