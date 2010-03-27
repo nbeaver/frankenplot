@@ -291,21 +291,6 @@ class SelectColumnsFrame(wx.Frame):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # ROI selector
-        box = wx.StaticBox(self, label="Quick Select")
-        roi_selector_sizer = wx.StaticBoxSizer(box, orient=wx.HORIZONTAL)
-        main_sizer.Add(roi_selector_sizer, flag=wx.EXPAND)
-
-        roi_selector_sizer.Add(wx.StaticText(self, label="ROI: "),
-                flag=wx.ALIGN_CENTER_VERTICAL)
-
-        rois = [str(roi) for roi in app.rois.keys()]
-        value = str(app.plot_opts["roi_number"])
-        self.roi_combo = wx.ComboBox(self, value=value, choices=rois)
-        roi_selector_sizer.Add(self.roi_combo)
-        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
-
         # column filter
         self.column_filter = wx.TextCtrl(self, size=(200, 27.5))
         self.column_filter.SetFocus()
@@ -335,6 +320,24 @@ class SelectColumnsFrame(wx.Frame):
                                              size=size)
         self.Bind(wx.EVT_BUTTON, self.OnDeselectAll, self.deselect_all_button)
         col_buttons_sizer.Add(self.deselect_all_button)
+
+        # quick select
+        box = wx.StaticBox(self, label="Quick Select")
+        qs_super_sizer = wx.StaticBoxSizer(box, orient=wx.HORIZONTAL)
+        main_sizer.Add(qs_super_sizer, flag=wx.EXPAND)
+        qs_sizer = wx.GridSizer(2, 2)
+        qs_super_sizer.Add(qs_sizer)
+
+        rois = [str(roi) for roi in app.rois.keys()]
+
+        # ROI filter
+        qs_sizer.Add(wx.StaticText(self, label="Filter by ROI:"),
+                             flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.roi_filter = wx.ComboBox(self, choices=rois)
+        qs_sizer.Add(self.roi_filter)
+        self.Bind(wx.EVT_COMBOBOX, self.OnFilterROI, self.roi_filter)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnFilterROI, self.roi_filter)
 
         # buttons
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -384,9 +387,10 @@ class SelectColumnsFrame(wx.Frame):
     def OnSelectAll(self, e):
         self.columns_list.CheckAllShown()
 
-    def OnSelectROI(self, e):
-        roi_number = int(self.roi_combo.GetValue())
-        self._set_columns(roi_number)
+    def OnFilterROI(self, e):
+        roi_number = int(self.roi_filter.GetValue())
+        pattern = "corr_roi*_%d" % (roi_number)
+        self.column_filter.SetValue(pattern)
 
     def _OnUpdateFilter(self, e):
         pattern = self.column_filter.GetValue()
