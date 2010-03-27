@@ -196,6 +196,11 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         for id, item in self:
             self.CheckItem(id, check=True)
 
+    def CheckItem(self, id, check=True):
+        label = self.GetItem(id).GetText()
+        self._items[label] = check
+        CheckListCtrlMixin.CheckItem(self, id, check)
+
     def ClearAll(self):
         self._reset()
         wx.ListCtrl.ClearAll(self)
