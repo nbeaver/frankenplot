@@ -398,7 +398,12 @@ class SelectColumnsFrame(wx.Frame):
         self.columns_list.SetItemStrings(columns)
 
     def OnSaveClick(self, e):
-        roi = int(self.roi_select.GetValue())
+        try:
+            roi = int(self.roi_select.GetValue())
+        except ValueError:
+            # FIXME: come up with a better dummy value
+            roi = 0
+
         columns = [c.GetText() for c in self.columns_list.GetCheckedItems()]
 
         self.app.change_plot(roi_number=roi, columns=columns)
@@ -415,12 +420,19 @@ class SelectColumnsFrame(wx.Frame):
         self.columns_list.CheckAllShown()
 
     def OnFilterROI(self, e):
-        roi_number = int(self.roi_filter.GetValue())
+        try:
+            roi_number = int(self.roi_filter.GetValue())
+        except ValueError:
+            return
+
         pattern = "corr_roi*_%d" % (roi_number)
         self.column_filter.SetValue(pattern)
 
     def OnSelectROI(self, e):
-        roi_number = int(self.roi_selector.GetValue())
+        try:
+            roi_number = int(self.roi_selector.GetValue())
+        except ValueError:
+            return
 
         self.column_filter.SetValue("")
         self.columns_list.UncheckAll()
