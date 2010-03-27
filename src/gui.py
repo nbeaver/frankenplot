@@ -279,7 +279,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def ShowItemStrings(self, wanted_items):
         wx.ListCtrl.DeleteAllItems(self)
 
-        for label in wanted_items:
+        for label in natural_sort(wanted_items):
             self.AppendStringItem(label, check=self._items[label])
 
     def UncheckAll(self):
