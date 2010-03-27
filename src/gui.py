@@ -5,6 +5,7 @@ import sys
 import matplotlib.cm
 import matplotlib.numerix as nx
 import wx
+from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 
 import wxmpl
 import xdp.io
@@ -154,6 +155,74 @@ class PlotFrame(wxmpl.PlotFrame):
             title="Select Columns", app=self.app)
         frame.Show(True)
 
+class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
+    def __init__(self, parent, **kwargs):
+        style = kwargs.pop("style", wx.LC_REPORT | wx.SUNKEN_BORDER |
+                           wx.LC_NO_HEADER)
+        wx.ListCtrl.__init__(self, parent, style=style, **kwargs)
+        CheckListCtrlMixin.__init__(self)
+        ListCtrlAutoWidthMixin.__init__(self)
+
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self._OnSelect, self)
+
+        self._reset()
+
+    def AppendStringItem(self, label, check=True):
+        return CheckListCtrl.InsertStringItem(self, sys.maxint, label, check)
+
+    def ClearAll(self):
+        self._reset()
+        wx.ListCtrl.ClearAll(self)
+
+    def DeleteAllItems(self):
+        self._reset()
+        wx.ListCtrl.DeleteAllItems(self)
+
+    def DeleteItem(self, item_id):
+        del self._items[self.GetItemText(item_id)]
+        wx.ListCtrl.DeleteItem(item_id)
+
+    def GetCheckedItems(self):
+        pass
+
+    def GetItems(self):
+        pass
+
+#    def InsertImageStringItem(self, *args, **kwargs):
+#        raise NotImplementedError
+
+    def InsertItem(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def InsertStringItem(self, index, label, check=True):
+        self._items[label] = check
+        id = self.InsertStringItem(index, label)
+        self.CheckItem(id, check=bool(check))
+        return id
+
+    def SetItem(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def SetItemStrings(self, labels):
+        self.DeleteAllItems()
+
+        for label, checked in sorted(labels.iteritems()):
+            id = self.AppendStringItem(label, checked)
+
+        self._items = labels
+
+    def SetItemText(self, item_id, label):
+        checked = self._items.pop(self.GetItemText(item_id))
+        self._items[label] = checked
+        wx.ListCtrl.SetItemText(self, item_id, label)
+
+    def _OnSelect(self, e):
+        id = e.GetIndex()
+        self.ToggleItem(id)
+
+    def _reset(self):
+        self._items = dict()
+
 class SelectColumnsFrame(wx.Frame):
     def __init__(self, parent, id, title, app, **kwargs):
         self.app = app
@@ -175,9 +244,12 @@ class SelectColumnsFrame(wx.Frame):
         self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
 
         # column selection
-        self.columns_box = wx.ListBox(self, style=wx.LB_MULTIPLE)
-        grid.Add(self.columns_box, pos=(1, 1))
-        self._set_columns(roi_number=int(self.roi_combo.GetValue()))
+        self.columns_list = CheckListCtrl(self, size=(200, 300))
+        self.columns_list.InsertColumn(0, "Data Column")
+        grid.Add(self.columns_list, pos=(1, 1))
+
+        columns = dict((k, True) for k in self.app.data.getColumnNames())
+        self.columns_list.SetItemStrings(columns)
 
         # save button
         self.save_button = wx.Button(self, label="Save")
@@ -189,7 +261,7 @@ class SelectColumnsFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnCancelClick, self.cancel_button)
         grid.Add(self.cancel_button, pos=(2, 1))
 
-        self.SetSizerAndFit(grid)
+        self.SetSizer(grid)
 
     def _set_columns(self, roi_number):
         columns = self.app.rois[roi_number]
