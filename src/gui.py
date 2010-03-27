@@ -1,4 +1,5 @@
 import copy
+import fnmatch
 import re
 import sys
 
@@ -203,6 +204,15 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         del self._items[self.GetItemText(item_id)]
         wx.ListCtrl.DeleteItem(item_id)
 
+    def Filter(self, pattern):
+        if len(pattern) == 0:
+            pattern = "*"
+        else:
+            pattern = "*%s*" % (pattern)
+
+        columns = fnmatch.filter(self._items.keys(), pattern)
+        self.ShowItemStrings(columns)
+
     def GetCheckedItems(self):
         return [item for (id, item) in self if self.IsChecked(id)]
 
@@ -237,6 +247,14 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         self._items[label] = checked
         wx.ListCtrl.SetItemText(self, item_id, label)
 
+    def ShowItemStrings(self, wanted_items):
+        wx.ListCtrl.DeleteAllItems(self)
+        wanted_items = dict((k, True) for k in wanted_items)
+
+        for item, checked in sorted(self._items.iteritems()):
+            if item in wanted_items:
+                self.AppendStringItem(item, checked)
+
     def _OnSelect(self, e):
         id = e.GetIndex()
         self.ToggleItem(id)
@@ -264,21 +282,27 @@ class SelectColumnsFrame(wx.Frame):
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_combo)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnSelectROI, self.roi_combo)
 
+        # column filter
+        self.column_filter = wx.TextCtrl(self, size=(200, 27.5))
+        self.column_filter.SetFocus()
+        grid.Add(self.column_filter, pos=(1, 1))
+        self.Bind(wx.EVT_TEXT, self._OnUpdateFilter, self.column_filter)
+
         # column selection
         self.columns_list = CheckListCtrl(self, size=(200, 300))
         self.columns_list.InsertColumn(0, "Data Column")
         self._set_columns_list()
-        grid.Add(self.columns_list, pos=(1, 1))
+        grid.Add(self.columns_list, pos=(2, 1))
 
         # save button
         self.save_button = wx.Button(self, label="Save")
         self.Bind(wx.EVT_BUTTON, self.OnSaveClick, self.save_button)
-        grid.Add(self.save_button, pos=(2, 0))
+        grid.Add(self.save_button, pos=(3, 0))
 
         # cancel button
         self.cancel_button = wx.Button(self, label="Cancel")
         self.Bind(wx.EVT_BUTTON, self.OnCancelClick, self.cancel_button)
-        grid.Add(self.cancel_button, pos=(2, 1))
+        grid.Add(self.cancel_button, pos=(3, 1))
 
         self.SetSizer(grid)
 
@@ -307,6 +331,10 @@ class SelectColumnsFrame(wx.Frame):
     def OnSelectROI(self, e):
         roi_number = int(self.roi_combo.GetValue())
         self._set_columns(roi_number)
+
+    def _OnUpdateFilter(self, e):
+        pattern = self.column_filter.GetValue()
+        self.columns_list.Filter(pattern)
 
 class PlotApp(wxmpl.PlotApp):
     def __init__(self, filename=None, **kwargs):
