@@ -399,7 +399,7 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnSaveClick(self, e):
         try:
-            roi = int(self.roi_select.GetValue())
+            roi = int(self.roi_selector.GetValue())
         except ValueError:
             # FIXME: come up with a better dummy value
             roi = 0
