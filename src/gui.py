@@ -472,6 +472,10 @@ class PlotApp(wxmpl.PlotApp):
 
         self.plot_opts = dict()
 
+        # colorbar instance variables
+        self.img = None
+        self.cb = None
+
         wxmpl.PlotApp.__init__(self, **kwargs)
 
     def OnInit(self):
@@ -539,11 +543,27 @@ class PlotApp(wxmpl.PlotApp):
 
         # plot the data and colorbar
         extent = min(x), max(x), min(y), max(y)
-        img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
-                origin='lower', aspect='equal', interpolation='nearest',
-                extent=extent)
-        cb = fig.colorbar(img, cax=None, orientation='vertical')
 
+        # if we're replotting the image, update the colormap
+        if self.img:
+            # we need to update both the image's data and the colormap's data
+            self.img.set_data(z)
+            self.cb.set_array(z)
+
+            # recalculate limits
+            self.cb.autoscale()
+
+            # update image
+            self.img.changed()
+
+        # otherwise, create a new colormap
+        else:
+            self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
+                        origin='lower', aspect='equal', interpolation='nearest',
+                        extent=extent)
+            self.cb = fig.colorbar(self.img, cax=None, orientation='vertical')
+
+        # force a redraw of the figure
         axes.figure.canvas.draw()
 
         # save current plot parameters for later retrieval
