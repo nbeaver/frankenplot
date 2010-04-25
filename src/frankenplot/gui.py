@@ -309,6 +309,81 @@ class SelectColumnsFrame(wx.Frame):
 
 # ============================================================================
 
+class PlotControlPanel(wx.Panel):
+    def __init__(self, parent, id, **kwargs):
+        wx.Panel.__init__(self, parent, id, **kwargs)
+
+        self.main_sizer = main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        sizer = wx.GridBagSizer()
+
+        # ROI selector
+        # FIXME: get correct ROIs
+        rois = [str(i) for i in range(3)]
+        self.roi_selector = wx.ComboBox(parent=self, choices=rois)
+        sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
+                flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.roi_selector, pos=(0,1))
+
+        main_sizer.Add(sizer, flag=wx.EXPAND)
+
+        # mode selector
+        mode_sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self.sum_rb = wx.RadioButton(parent=self, id=wx.ID_ANY, label="Sum",
+                style=wx.RB_GROUP)
+        self.chan_rb = wx.RadioButton(parent=self, id=wx.ID_ANY,
+                label="Channel")
+        mode_sizer.Add(self.sum_rb)
+        mode_sizer.Add(self.chan_rb)
+
+        sizer.Add(wx.StaticText(parent=self, label="Mode:"), pos=(1,0),
+                flag=wx.ALIGN_TOP)
+        sizer.Add(mode_sizer, pos=(1,1))
+
+        # channel mode controls
+        self._init_chan_mode_ctrls()
+
+        # plot options
+        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
+        sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
+        self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
+        self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
+
+        sizer.Add(self.corr_cb)
+        sizer.Add(self.norm_cb)
+        main_sizer.Add(sizer, flag=wx.EXPAND)
+
+        # size
+        self.SetSizer(main_sizer)
+        self.Fit()
+
+    def _init_chan_mode_ctrls(self):
+        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Mode")
+        cm_sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
+
+        # channel selector
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # FIXME: get proper list of channels
+        channels = [str(i) for i in range(16)]
+        self.chan_prev_btn = wx.Button(parent=self, label="Prev")
+        self.chan_sel = wx.ComboBox(parent=self, choices=channels)
+        self.chan_next_btn = wx.Button(parent=self, label="Next")
+
+        sizer.Add(self.chan_prev_btn)
+        sizer.Add(self.chan_sel, flag=wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.chan_next_btn)
+
+        cm_sizer.Add(sizer)
+
+        self.enable_chan_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Enable")
+        cm_sizer.Add(self.enable_chan_cb)
+
+        # add to main sizer
+        self.main_sizer.Add(cm_sizer)
+
+# ============================================================================
+
 class MainWindow(wx.Frame):
     def __init__(self, parent, id, title, app, **kwargs):
         wx.Frame.__init__(self, parent, id, title, **kwargs)
@@ -317,16 +392,17 @@ class MainWindow(wx.Frame):
         self.app = app
 
         # initialise subpanels
-        self.plot = wxmpl.PlotPanel(self, wx.ID_ANY)
-#        self.plot_opts = PlotOptionsPanels(self, wx.ID_ANY)
+        self.plot = wxmpl.PlotPanel(parent=self, id=wx.ID_ANY)
+        self.plot_opts = PlotControlPanel(parent=self, id=wx.ID_ANY)
 
         # misc initialisation
         self._initialise_printer()
         self._create_menus()
 
         # lay out frame
-        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.plot, proportion=1)
+        sizer.Add(self.plot_opts)
         self.SetSizer(sizer)
         self.Fit()
 
