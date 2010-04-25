@@ -309,12 +309,37 @@ class SelectColumnsFrame(wx.Frame):
 
 # ============================================================================
 
-class PlotFrame(wxmpl.PlotFrame):
-    def __init__(self, app, **kwargs):
-        self.app = app
-        wxmpl.PlotFrame.__init__(self, **kwargs)
+class MainWindow(wx.Frame):
+    def __init__(self, parent, id, title, app, **kwargs):
+        wx.Frame.__init__(self, parent, id, title, **kwargs)
 
-    def create_menus(self):
+        # FIXME: remove this eventually
+        self.app = app
+
+        # initialise subpanels
+        self.plot = wxmpl.PlotPanel(self, wx.ID_ANY)
+#        self.plot_opts = PlotOptionsPanels(self, wx.ID_ANY)
+
+        # misc initialisation
+        self._initialise_printer()
+        self._create_menus()
+
+        # lay out frame
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.plot, proportion=1)
+        self.SetSizer(sizer)
+        self.Fit()
+
+    def _initialise_printer(self):
+        printer_data = wx.PrintData()
+        printer_data.SetPaperId(wx.PAPER_LETTER)
+
+        if callable(getattr(printer_data, 'SetPrinterCommand', None)):
+            printer_data.SetPrinterCommand(wxmpl.POSTSCRIPT_PRINTING_COMMAND)
+
+        self.printer = wxmpl.FigurePrinter(self, printer_data)
+
+    def _create_menus(self):
         # menu bar
         menuBar = wx.MenuBar()
         self.SetMenuBar(menuBar)
@@ -366,11 +391,81 @@ class PlotFrame(wxmpl.PlotFrame):
             'Display version information')
         self.Bind(wx.EVT_MENU, self.OnMenuHelpAbout, item)
 
+    def OnMenuFileSave(self, evt):
+        """
+        Handles File->Save menu events.
+        """
+        fileName = wx.FileSelector('Save Plot', default_extension='png',
+            wildcard=('Portable Network Graphics (*.png)|*.png|'
+                + 'Encapsulated Postscript (*.eps)|*.eps|All files (*.*)|*.*'),
+            parent=self, flags=wx.SAVE|wx.OVERWRITE_PROMPT)
+
+        if not fileName:
+            return
+
+        path, ext = os.path.splitext(fileName)
+        ext = ext[1:].lower()
+
+        if ext != 'png' and ext != 'eps':
+            error_message = (
+                'Only the PNG and EPS image formats are supported.\n'
+                'A file extension of `png\' or `eps\' must be used.')
+            wx.MessageBox(error_message, 'Error - plotit',
+                parent=self, style=wx.OK|wx.ICON_ERROR)
+            return
+
+        try:
+            self.panel.print_figure(fileName)
+        except IOError, e:
+            if e.strerror:
+                err = e.strerror
+            else:
+                err = e
+
+            wx.MessageBox('Could not save file: %s' % err, 'Error - plotit',
+                parent=self, style=wx.OK|wx.ICON_ERROR)
+
+    def OnMenuFilePageSetup(self, evt):
+        """
+        Handles File->Page Setup menu events
+        """
+        self.printer.pageSetup()
+
+    def OnMenuFilePrintPreview(self, evt):
+        """
+        Handles File->Print Preview menu events
+        """
+        self.printer.previewFigure(self.get_figure())
+
+    def OnMenuFilePrint(self, evt):
+        """
+        Handles File->Print menu events
+        """
+        self.printer.printFigure(self.get_figure())
+
+    def OnMenuFileClose(self, evt):
+        """
+        Handles File->Close menu events.
+        """
+        self.Close()
+
+    def OnMenuHelpAbout(self, evt):
+        """
+        Handles Help->About menu events.
+        """
+        wx.MessageBox(self.ABOUT_MESSAGE, self.ABOUT_TITLE, parent=self,
+            style=wx.OK)
+
     def OnMenuSelectColumns(self, evt):
         frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY,
             title="Select Columns", app=self.app)
         frame.Show(True)
 
+    def get_figure(self):
+        """
+        Returns the figure associated with this canvas.
+        """
+        return self.plot.figure
 
 # ============================================================================
 
@@ -405,14 +500,14 @@ class PlotApp(wx.App):
         wx.App.__init__(self, **kwargs)
 
     def OnInit(self):
-        self.plot_frame = PlotFrame(parent=None, id=wx.ID_ANY, title="frankenplot",
-                                    app=self)
+        self.main_window = MainWindow(parent=None, id=wx.ID_ANY,
+                                      title="frankenplot", app=self)
 
-        self.plot_frame.Show(True)
+        self.main_window.Show(True)
         return True
 
     def get_figure(self):
-        return self.plot_frame.get_figure()
+        return self.main_window.get_figure()
 
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
              roi_number=0, columns=None):
