@@ -1,233 +1,24 @@
-#!/usr/bin/env python
-
-# Name: frankenplot
-# Purpose: Quick 'n dirty plotting of MRCAT XRF mapping data
-# Author: Ken McIvor <mcivor@iit.edu>
 #
-# Copyright 2006-2009 Illinois Institute of Technology
+# frankenplot.gui: wxPython elements
 #
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL ILLINOIS INSTITUTE OF TECHNOLOGY BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-# Except as contained in this notice, the name of Illinois Institute
-# of Technology shall not be used in advertising or otherwise to promote
-# the sale, use or other dealings in this Software without prior written
-# authorization from Illinois Institute of Technology.
-
-# ChangeLog
-#
-# 12-06-2006  Ken McIvor <mcivor@iit.edu>
-#  * Release 1.0
-#
-# 02-21-2007  Ken McIvor <mcivor@iit.edu>
-#  * Release 1.1
-#  * Matplotlib 0.87.7 compatability fixes
-#
-# 04-15-2007  Ken McIvor <mcivor@iit.edu>
-#  * Release 1.2
-#  * Incorporated Bruce Ravel's patch, adding an "-m" option for specifying
-#    the color map
-#
-# 03-06-2008  Ken McIvor <mcivor@iit.edu>
-#  * Release 1.3
-#  * Reverted to the pre-0.81 axes formatters
-#    the color map
-#
-# 02-20-2008  Ken McIvor <mcivor@iit.edu>
-#  * Release 1.4
-#  * WxMpl is now imported before matplotlib to avoid the warning "This call
-#    to matplotlib.use() has no effect because the the backend has already
-#    been chosen"
-
 
 import copy
 import fnmatch
-import optparse
 import re
 import sys
 
-import matplotlib.cm
-import matplotlib.numerix as nx
+import matplotlib
+
 import wx
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 
+# FIXME: provisional, remove soon
 import wxmpl
-import xdp.io
+import xdp
 
-__version__ = '2.0a1'
-
-# ============================================================================
-
-def getNumberUnique(vect):
-    """
-    Return the number of times elements appear in the vector 'vect' without
-    repeating the first element of the vector.
-
-    This only works for vectors like '[0, 1, 2, 3, 0, 1, 2, 3]'.
-    """
-    i = 1
-    num = 0
-    start = vect[0]
-    max = vect.shape[0]
-    while i < max:
-        if vect[i] == start:
-            break
-        else:
-            i += 1
-    return i
-
-
-def makeXYZ(xCol, yCol, zCol):
-    idxs = nx.arange(0, zCol.shape[0], 1)
-    nX = getNumberUnique(xCol)
-    if nX == 1: # Y varies: (0, 0, z), (0, 1, z), ...
-        nY = getNumberUnique(yCol)
-        nX = int(nx.ceil(yCol.shape[0] / float(nY)))
-        y = yCol[0:nY]
-        x = getUniqueSequence(xCol, nX)
-        z = nx.zeros((nY, nX), nx.Float)
-        z[:, :] = nx.minimum.reduce(zCol)
-        for i in range(0, nX):
-            zc = zCol[nY*i:nY*(i+1)]
-            n  = zc.shape[0]
-            z[0:n,i] = zc
-    else: # X varies: (0, 0, z), (1, 0, z), ...
-        nY = int(nx.ceil(xCol.shape[0] / float(nX)))
-        x = xCol[0:nX]
-        y = getUniqueSequence(yCol, nY)
-        z = nx.zeros((nY, nX), nx.Float)
-        z[:, :] = nx.minimum.reduce(zCol)
-        for i in range(0, nY):
-            zc = zCol[nX*i:nX*(i+1)]
-            n  = zc.shape[0]
-            z[i, 0:n] = zc
-    return x, y, z
-
-
-def getUniqueSequence(vect, count):
-   """Return a Numeric array containing the at most the first 'count' unique
-   elements from the vector 'vect'.
-
-   The 'vect' must contain at least one element.
-
-   This only works for vectors like '[0, 0, 1, 1, 2, 2, 3, 3]'.
-   """
-   i = 0
-   curr = None
-   unique = []
-   max = vect.shape[0]
-
-   while i < max:
-       if vect[i] == curr:
-           i += 1
-       else:
-           if len(unique) == count:
-               break
-           else:
-               curr = vect[i]
-               unique.append(curr)
-               i += 1
-
-   return nx.array(unique)
-
-
-def fatal_error(msg, *args):
-    if args:
-        print >> sys.stderr, '%s: %s' % (os.path.basename(sys.argv[0]),
-            (msg % args))
-    else:
-        print >> sys.stderr, '%s: %s' % (os.path.basename(sys.argv[0]), msg)
-    sys.exit(1)
-
-def natural_sort(lst):
-    """Sort a list in natural, human order
-
-    Based on: http://nedbatchelder.com/blog/200712/human_sorting.html"""
-
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
-    return sorted(lst, key=alphanum_key)
+from frankenplot import data as fdata, util
 
 # ============================================================================
-
-class PlotFrame(wxmpl.PlotFrame):
-    def __init__(self, app, **kwargs):
-        self.app = app
-        wxmpl.PlotFrame.__init__(self, **kwargs)
-
-    def create_menus(self):
-        # menu bar
-        menuBar = wx.MenuBar()
-        self.SetMenuBar(menuBar)
-
-        # File menu
-        fileMenu = wx.Menu()
-        menuBar.Append(fileMenu, '&File')
-
-        # FIXME: does "Ctrl+S" shortcut text show up as Cmd+S on Macs?
-        item = fileMenu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+S",
-            "Save a copy of the current plot")
-        self.Bind(wx.EVT_MENU, self.OnMenuFileSave, item)
-
-        fileMenu.AppendSeparator()
-
-        if wx.Platform != '__WXMAC__':
-            item = fileMenu.Append(wx.ID_ANY, "Page Set&up...",
-                "Set the size and margins of the printed figure")
-            self.Bind(wx.EVT_MENU, self.OnMenuFilePageSetup, item)
-
-            item = fileMenu.Append(wx.ID_PREVIEW, 'Print Previe&w...',
-                "Preview the print version of the current plot")
-            self.Bind(wx.EVT_MENU, self.OnMenuFilePrintPreview, item)
-
-        id = wx.NewId()
-        item = fileMenu.Append(wx.ID_PRINT, '&Print...\tCtrl+P',
-            "Print the current plot")
-        self.Bind(wx.EVT_MENU, self.OnMenuFilePrint, item)
-
-        fileMenu.AppendSeparator()
-
-        item = fileMenu.Append(wx.ID_CLOSE, '&Close Window\tCtrl+W',
-            'Close the current plot window')
-        self.Bind(wx.EVT_MENU, self.OnMenuFileClose, item)
-
-        # Edit menu
-        editMenu = wx.Menu()
-        menuBar.Append(editMenu, "&Edit")
-
-        item = editMenu.Append(wx.ID_ANY, "&Columns...",
-            "Select displayed columns")
-        self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
-
-        # Help menu
-        helpMenu = wx.Menu()
-        menuBar.Append(helpMenu, '&Help')
-
-        item = helpMenu.Append(wx.ID_ANY, '&About...',
-            'Display version information')
-        self.Bind(wx.EVT_MENU, self.OnMenuHelpAbout, item)
-
-    def OnMenuSelectColumns(self, evt):
-        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY,
-            title="Select Columns", app=self.app)
-        frame.Show(True)
-
 
 class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     class CheckListCtrlIterator(object):
@@ -328,7 +119,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
         self.DeleteAllItems()
 
         # FIXME: there is a better way to do this
-        keys = natural_sort(labels.keys())
+        keys = util.natural_sort(labels.keys())
         for label in keys:
             checked = labels[label]
             id = self.AppendStringItem(label, checked)
@@ -343,7 +134,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def ShowItemStrings(self, wanted_items):
         wx.ListCtrl.DeleteAllItems(self)
 
-        for label in natural_sort(wanted_items):
+        for label in util.natural_sort(wanted_items):
             self.AppendStringItem(label, check=self._items[label])
 
     def UncheckAll(self):
@@ -365,6 +156,7 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
     def _reset(self):
         self._items = dict()
 
+# ============================================================================
 
 class SelectColumnsFrame(wx.Frame):
     def __init__(self, parent, id, title, app, **kwargs):
@@ -515,10 +307,78 @@ class SelectColumnsFrame(wx.Frame):
         self.columns_list.Filter(pattern)
 
 
+# ============================================================================
+
+class PlotFrame(wxmpl.PlotFrame):
+    def __init__(self, app, **kwargs):
+        self.app = app
+        wxmpl.PlotFrame.__init__(self, **kwargs)
+
+    def create_menus(self):
+        # menu bar
+        menuBar = wx.MenuBar()
+        self.SetMenuBar(menuBar)
+
+        # File menu
+        fileMenu = wx.Menu()
+        menuBar.Append(fileMenu, '&File')
+
+        # FIXME: does "Ctrl+S" shortcut text show up as Cmd+S on Macs?
+        item = fileMenu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+S",
+            "Save a copy of the current plot")
+        self.Bind(wx.EVT_MENU, self.OnMenuFileSave, item)
+
+        fileMenu.AppendSeparator()
+
+        if wx.Platform != '__WXMAC__':
+            item = fileMenu.Append(wx.ID_ANY, "Page Set&up...",
+                "Set the size and margins of the printed figure")
+            self.Bind(wx.EVT_MENU, self.OnMenuFilePageSetup, item)
+
+            item = fileMenu.Append(wx.ID_PREVIEW, 'Print Previe&w...',
+                "Preview the print version of the current plot")
+            self.Bind(wx.EVT_MENU, self.OnMenuFilePrintPreview, item)
+
+        id = wx.NewId()
+        item = fileMenu.Append(wx.ID_PRINT, '&Print...\tCtrl+P',
+            "Print the current plot")
+        self.Bind(wx.EVT_MENU, self.OnMenuFilePrint, item)
+
+        fileMenu.AppendSeparator()
+
+        item = fileMenu.Append(wx.ID_CLOSE, '&Close Window\tCtrl+W',
+            'Close the current plot window')
+        self.Bind(wx.EVT_MENU, self.OnMenuFileClose, item)
+
+        # Edit menu
+        editMenu = wx.Menu()
+        menuBar.Append(editMenu, "&Edit")
+
+        item = editMenu.Append(wx.ID_ANY, "&Columns...",
+            "Select displayed columns")
+        self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
+
+        # Help menu
+        helpMenu = wx.Menu()
+        menuBar.Append(helpMenu, '&Help')
+
+        item = helpMenu.Append(wx.ID_ANY, '&About...',
+            'Display version information')
+        self.Bind(wx.EVT_MENU, self.OnMenuHelpAbout, item)
+
+    def OnMenuSelectColumns(self, evt):
+        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY,
+            title="Select Columns", app=self.app)
+        frame.Show(True)
+
+
+# ============================================================================
+
 class PlotApp(wxmpl.PlotApp):
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
 
+        # FIXME: move to frankenplot.data
         # load the data file
         try:
             self.hdr, self.data = xdp.io.readFile(filename)
@@ -590,7 +450,7 @@ class PlotApp(wxmpl.PlotApp):
             else:
                 fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
         z_col = self.data.evaluate(zExpr)
-        x, y, z = makeXYZ(x_col, y_col, z_col)
+        x, y, z = fdata.makeXYZ(x_col, y_col, z_col)
 
         # set up axes
         fig = self.get_figure()
@@ -660,75 +520,3 @@ class PlotApp(wxmpl.PlotApp):
         return rois
 
 # ============================================================================
-
-def parse_arguments(args):
-    # matplotlib's color maps
-    colormaps = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot',
-        'hsv', 'pink', 'prism', 'spring', 'summer', 'winter']
-
-    USAGE = '%prog [OPTIONS...] FILE [ROI-NUMBER]'
-    VERSION = '%prog ' + __version__ + ', by Ken McIvor <mcivor@iit.edu>'
-    parser = optparse.OptionParser(usage=USAGE, version=VERSION)
-
-    parser.add_option('-i',
-        action='store', type='string', dest='zName',
-        help='z-axis column name (legacy option; see -z for more details)', metavar='N')
-
-    parser.add_option('-x',
-        action='store', type='string', dest='xName', default='sam_hor',
-        help='x-axis column name ("sam_hor" is default)', metavar='N')
-
-    parser.add_option('-y',
-        action='store', type='string', dest='yName', default='sam_vert',
-        help='y-axis column name ("sam_vert" is default)', metavar='N')
-
-    parser.add_option('-z',
-        action='store', type='string', dest='zName', default='Io',
-        help='z-axis column name ("Io" is default)', metavar='N')
-
-    # FIXME move to Edit -> Preferences
-    parser.add_option('-n',
-        action='store_false', dest='normalize', default=True,
-        help='disable Io normalization')
-
-    parser.add_option('-m',
-        action='store', dest='colormap', default='hot',
-        help=('color map (%s)' % ', '.join(colormaps)), metavar='C')
-
-    opts, args = parser.parse_args(args)
-    if not 0 < len(args) < 3:
-        parser.print_usage()
-        sys.exit(1)
-
-    fileName  = args[0]
-    roiNumber = 0
-    if len(args) == 2:
-        try:
-            roiNumber = int(args[1])
-        except ValueError:
-            fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
-
-        if roiNumber < 0:
-            fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
-
-    cm = opts.colormap.lower()
-    if cm not in colormaps:
-        fatal_error('invalid color map "%s"', opts.colormap)
-    else:
-        opts.colormap = cm
-
-    return opts, (fileName, roiNumber)
-
-if __name__ == '__main__':
-    try:
-        opts, args = parse_arguments(sys.argv[1:])
-        filename, roi_number = args
-
-        app = PlotApp(filename=filename) 
-        app.plot(x_name=opts.xName, y_name=opts.yName, z_name=opts.zName,
-                 normalize=opts.normalize, colormap=opts.colormap,
-                 roi_number=roi_number)
-
-        app.MainLoop()
-    except KeyboardInterrupt:
-        pass
