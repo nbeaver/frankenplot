@@ -414,6 +414,8 @@ class PlotPanel(wxmpl.PlotPanel):
 
         self.data = data
 
+        # self.rois is a dict(roi) => [columns]
+        # self.channels is a dict(channel) => bool (enabled/disabled)
         self.rois, self.channels = self._parse_columns(self.data.getColumnNames())
 
         self.plot_opts = dict()
@@ -512,7 +514,7 @@ class PlotPanel(wxmpl.PlotPanel):
     def _parse_columns(self, columns):
         roi_re = re.compile(r"corr_roi(\d+)_(\d+)")
 
-        channels = []
+        channels = dict()
         rois = dict()
 
         search = roi_re.search
@@ -520,7 +522,7 @@ class PlotPanel(wxmpl.PlotPanel):
             match = search(col)
             if match:
                 channel, roi = match.groups()
-                channels.append(int(channel))
+                channels[int(channel)] = True
                 rois.setdefault(int(roi), []).append(col)
 
         return rois, channels
