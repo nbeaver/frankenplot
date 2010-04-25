@@ -158,10 +158,9 @@ class CheckListCtrl(wx.ListCtrl, CheckListCtrlMixin, ListCtrlAutoWidthMixin):
 
 # ============================================================================
 
+# FIXME: this is broken since the Great Reorganisation of 2010
 class SelectColumnsFrame(wx.Frame):
-    def __init__(self, parent, id, title, app, **kwargs):
-        self.app = app
-
+    def __init__(self, parent, id, title, **kwargs):
         wx.Frame.__init__(self, parent, id, title, size=(500, 500), **kwargs)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -409,15 +408,132 @@ class PlotControlPanel(wx.Panel):
 
 # ============================================================================
 
+class PlotPanel(wxmpl.PlotPanel):
+    def __init__(self, data, *args, **kwargs):
+        wxmpl.PlotPanel.__init__(self, *args, **kwargs)
+
+        self.data = data
+
+        self.rois, self.channels = self._parse_columns(self.data.getColumnNames())
+
+        self.plot_opts = dict()
+
+        # colorbar instance variables
+        self.img = None
+        self.cb = None
+
+    def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
+             roi_number=0, columns=None):
+
+        # fetch x
+        try:
+            x_col = self.data.getColumn(x_name)
+        except xdp.ColumnNameError:
+            fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
+
+        # fetch y
+        try:
+            y_col = self.data.getColumn(y_name)
+        except xdp.ColumnNameError:
+            fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
+
+        # determine the columns to plot if no columns were specified
+        if columns is None:
+            columns = self.rois[roi_number]
+            if not columns:
+                fatal_error('`%s\' contains no data for ROI %d',
+                    os.path.basename(fileName), roi_number)
+
+        # calculate z
+        zExpr = '+'.join(['$'+x for x in columns])
+        if normalize:
+            if self.data.hasColumn(z_name):
+                zExpr = '(%s)/$%s' % (zExpr, z_name)
+            else:
+                fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
+        z_col = self.data.evaluate(zExpr)
+        x, y, z = fdata.makeXYZ(x_col, y_col, z_col)
+
+        # set up axes
+        fig = self.get_figure()
+        axes = fig.gca()
+
+        if matplotlib.__version__ >= '0.81':
+            axes.yaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
+            axes.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
+
+            axes.xaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
+            axes.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
+
+        # FIXME
+#        axes.set_title('ROI %d of %s' % (roi_number, self.filename))
+        axes.set_title("")
+        axes.set_ylabel(y_name)
+
+        # plot the data and colorbar
+        extent = min(x), max(x), min(y), max(y)
+
+        # if we're replotting the image, update the colormap
+        if self.img:
+            # we need to update both the image's data and the colormap's data
+            self.img.set_data(z)
+            self.cb.set_array(z)
+
+            # recalculate limits
+            self.cb.autoscale()
+
+            # update image
+            self.img.changed()
+
+        # otherwise, create a new colormap
+        else:
+            self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
+                        origin='lower', aspect='equal', interpolation='nearest',
+                        extent=extent)
+            self.cb = fig.colorbar(self.img, cax=None, orientation='vertical')
+
+        # force a redraw of the figure
+        axes.figure.canvas.draw()
+
+        # save current plot parameters for later retrieval
+        self.plot_opts["x_name"] = x_name
+        self.plot_opts["y_name"] = y_name
+        self.plot_opts["z_name"] = z_name
+        self.plot_opts["normalize"] = normalize
+        self.plot_opts["colormap"] = colormap
+        self.plot_opts["roi_number"] = roi_number
+        self.plot_opts["columns"] = columns
+
+    def change_plot(self, **kwargs):
+        opts = copy.copy(self.plot_opts)
+        opts.update(kwargs)
+        self.plot(**opts)
+
+    def _parse_columns(self, columns):
+        roi_re = re.compile(r"corr_roi(\d+)_(\d+)")
+
+        channels = []
+        rois = dict()
+
+        search = roi_re.search
+        for col in columns:
+            match = search(col)
+            if match:
+                channel, roi = match.groups()
+                channels.append(int(channel))
+                rois.setdefault(int(roi), []).append(col)
+
+        return rois, channels
+
+
+# ============================================================================
+
 class MainWindow(wx.Frame):
-    def __init__(self, parent, id, title, app, **kwargs):
+    def __init__(self, parent, id, title, data, **kwargs):
         wx.Frame.__init__(self, parent, id, title, **kwargs)
 
-        # FIXME: remove this eventually
-        self.app = app
-
         # initialise subpanels
-        self.plot = wxmpl.PlotPanel(parent=self, id=wx.ID_ANY)
+        self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data)
         self.plot_opts = PlotControlPanel(parent=self, id=wx.ID_ANY)
 
         # misc initialisation
@@ -426,7 +542,7 @@ class MainWindow(wx.Frame):
 
         # lay out frame
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.plot, proportion=1)
+        sizer.Add(self.plot_panel, proportion=1)
         sizer.Add(self.plot_opts)
         self.SetSizer(sizer)
         self.Fit()
@@ -558,15 +674,11 @@ class MainWindow(wx.Frame):
             style=wx.OK)
 
     def OnMenuSelectColumns(self, evt):
-        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY,
-            title="Select Columns", app=self.app)
+        frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY, title="Select Columns")
         frame.Show(True)
 
-    def get_figure(self):
-        """
-        Returns the figure associated with this canvas.
-        """
-        return self.plot.figure
+    def plot(self, *args, **kwargs):
+        return self.plot_panel.plot(*args, **kwargs)
 
 # ============================================================================
 
@@ -589,124 +701,15 @@ class PlotApp(wx.App):
             self.hdr = None
             self.data = None
 
-        self.columns = self.data.getColumnNames()
-        self.rois = self.__parse_rois(self.columns)
-
-        self.plot_opts = dict()
-
-        # colorbar instance variables
-        self.img = None
-        self.cb = None
-
         wx.App.__init__(self, **kwargs)
 
     def OnInit(self):
-        self.main_window = MainWindow(parent=None, id=wx.ID_ANY,
-                                      title="frankenplot", app=self)
-
+        self.main_window = MainWindow(parent=None,
+                                      id=wx.ID_ANY,
+                                      title="frankenplot",
+                                      data=self.data)
         self.main_window.Show(True)
         return True
 
-    def get_figure(self):
-        return self.main_window.get_figure()
-
-    def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0, columns=None):
-
-        # fetch x
-        try:
-            x_col = self.data.getColumn(x_name)
-        except xdp.ColumnNameError:
-            fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
-
-        # fetch y
-        try:
-            y_col = self.data.getColumn(y_name)
-        except xdp.ColumnNameError:
-            fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
-
-        # determine the columns to plot if no columns were specified
-        if columns is None:
-            columns = self.rois[roi_number]
-            if not columns:
-                fatal_error('`%s\' contains no data for ROI %d',
-                    os.path.basename(fileName), roi_number)
-
-        # calculate z
-        zExpr = '+'.join(['$'+x for x in columns])
-        if normalize:
-            if self.data.hasColumn(z_name):
-                zExpr = '(%s)/$%s' % (zExpr, z_name)
-            else:
-                fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
-        z_col = self.data.evaluate(zExpr)
-        x, y, z = fdata.makeXYZ(x_col, y_col, z_col)
-
-        # set up axes
-        fig = self.get_figure()
-        axes = fig.gca()
-
-        if matplotlib.__version__ >= '0.81':
-            axes.yaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
-            axes.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
-
-            axes.xaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
-            axes.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
-
-        # FIXME
-        axes.set_title('ROI %d of %s' % (roi_number, self.filename))
-        axes.set_ylabel(y_name)
-
-        # plot the data and colorbar
-        extent = min(x), max(x), min(y), max(y)
-
-        # if we're replotting the image, update the colormap
-        if self.img:
-            # we need to update both the image's data and the colormap's data
-            self.img.set_data(z)
-            self.cb.set_array(z)
-
-            # recalculate limits
-            self.cb.autoscale()
-
-            # update image
-            self.img.changed()
-
-        # otherwise, create a new colormap
-        else:
-            self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
-                        origin='lower', aspect='equal', interpolation='nearest',
-                        extent=extent)
-            self.cb = fig.colorbar(self.img, cax=None, orientation='vertical')
-
-        # force a redraw of the figure
-        axes.figure.canvas.draw()
-
-        # save current plot parameters for later retrieval
-        self.plot_opts["x_name"] = x_name
-        self.plot_opts["y_name"] = y_name
-        self.plot_opts["z_name"] = z_name
-        self.plot_opts["normalize"] = normalize
-        self.plot_opts["colormap"] = colormap
-        self.plot_opts["roi_number"] = roi_number
-        self.plot_opts["columns"] = columns
-
-    def change_plot(self, **kwargs):
-        opts = copy.copy(self.plot_opts)
-        opts.update(kwargs)
-        self.plot(**opts)
-
-    def __parse_rois(self, columns):
-        roi_re = re.compile(r"corr_roi\d+_(\d+)")
-        rois = dict()
-
-        search = roi_re.search
-        for col in columns:
-            match = search(col)
-            if match:
-                roi = int(match.group(1))
-                rois.setdefault(roi, []).append(col)
-
-        return rois
-
-# ============================================================================
+    def plot(self, *args, **kwargs):
+        return self.main_window.plot(*args, **kwargs)
