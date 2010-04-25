@@ -331,8 +331,11 @@ class PlotControlPanel(wx.Panel):
         mode_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.sum_rb = wx.RadioButton(parent=self, id=wx.ID_ANY, label="Sum",
                 style=wx.RB_GROUP)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnModeSelect, self.sum_rb)
         self.chan_rb = wx.RadioButton(parent=self, id=wx.ID_ANY,
                 label="Channel")
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnModeSelect, self.chan_rb)
+
         mode_sizer.Add(self.sum_rb)
         mode_sizer.Add(self.chan_rb)
 
@@ -356,6 +359,9 @@ class PlotControlPanel(wx.Panel):
         # size
         self.SetSizer(main_sizer)
         self.Fit()
+
+        # set default state
+        self._set_sum_mode()
 
     def _init_chan_mode_ctrls(self):
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Mode")
@@ -381,6 +387,25 @@ class PlotControlPanel(wx.Panel):
 
         # add to main sizer
         self.main_sizer.Add(cm_sizer)
+
+        self.cm_sizer = cm_sizer
+
+        self.cm_items = (self.chan_prev_btn, self.chan_sel,
+                         self.chan_next_btn, self.enable_chan_cb)
+
+    def _set_chan_mode(self):
+        for item in self.cm_items:
+            item.Enable()
+
+    def _set_sum_mode(self):
+        for item in self.cm_items:
+            item.Disable()
+
+    def OnModeSelect(self, e):
+        if self.sum_rb.GetValue():
+            self._set_sum_mode()
+        else:
+            self._set_chan_mode()
 
 # ============================================================================
 
