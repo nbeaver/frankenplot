@@ -374,7 +374,7 @@ class PlotFrame(wxmpl.PlotFrame):
 
 # ============================================================================
 
-class PlotApp(wxmpl.PlotApp):
+class PlotApp(wx.App):
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
 
@@ -402,23 +402,17 @@ class PlotApp(wxmpl.PlotApp):
         self.img = None
         self.cb = None
 
-        wxmpl.PlotApp.__init__(self, **kwargs)
+        wx.App.__init__(self, **kwargs)
 
     def OnInit(self):
-        self.frame = panel = PlotFrame(parent=None, id=wx.ID_ANY,
-            title=self.title, size=self.size, dpi=self.dpi,
-            cursor=self.cursor, location=self.location,
-            crosshairs=self.crosshairs, selection=self.selection,
-            zoom=self.zoom, app=self)
+        self.plot_frame = PlotFrame(parent=None, id=wx.ID_ANY, title="frankenplot",
+                                    app=self)
 
-        if self.ABOUT_TITLE is not None:
-            panel.ABOUT_TITLE = self.ABOUT_TITLE
-
-        if self.ABOUT_MESSAGE is not None:
-            panel.ABOUT_MESSAGE = self.ABOUT_MESSAGE
-
-        panel.Show(True)
+        self.plot_frame.Show(True)
         return True
+
+    def get_figure(self):
+        return self.plot_frame.get_figure()
 
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
              roi_number=0, columns=None):
