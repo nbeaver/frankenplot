@@ -652,6 +652,7 @@ class EditPlotTitleDialog(wx.Dialog):
         self.Close()
 
 class EditChannelsDialog(wx.Dialog):
+    # FIXME: implement
     pass
 
 # ============================================================================
@@ -693,6 +694,12 @@ class MainWindow(wx.Frame):
         fileMenu = wx.Menu()
         menuBar.Append(fileMenu, '&File')
 
+        item = fileMenu.Append(wx.ID_OPEN, "&Open File...\tCtrl+O",
+            "Open a different data file")
+        item.Enable(False)
+
+        fileMenu.AppendSeparator()
+
         # FIXME: does "Ctrl+S" shortcut text show up as Cmd+S on Macs?
         item = fileMenu.Append(wx.ID_SAVEAS, "&Save As...\tCtrl+S",
             "Save a copy of the current plot")
@@ -727,6 +734,7 @@ class MainWindow(wx.Frame):
                 help="Edit plot title")
         self.Bind(wx.EVT_MENU, self.OnMenuEditPlotTitle, item)
 
+        # FIXME: implement
         item = editMenu.Append(id=wx.ID_ANY, text="Col&ormap...",
                 help="Edit plot colormap")
 
