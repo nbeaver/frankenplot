@@ -651,6 +651,9 @@ class EditPlotTitleDialog(wx.Dialog):
         self.parent.plot_panel.change_plot(title=self.title_txt.GetValue())
         self.Close()
 
+class EditChannelsDialog(wx.Dialog):
+    pass
+
 # ============================================================================
 
 class MainWindow(wx.Frame):
@@ -728,6 +731,10 @@ class MainWindow(wx.Frame):
                 help="Edit plot colormap")
 
         editMenu.AppendSeparator()
+
+        item = editMenu.Append(wx.ID_ANY, "Cha&nnels...",
+            "Edit channels")
+        self.Bind(wx.EVT_MENU, self.OnMenuEditChannels, item)
 
         item = editMenu.Append(wx.ID_ANY, "&Columns...",
             "Select displayed columns")
@@ -809,6 +816,11 @@ class MainWindow(wx.Frame):
     def OnMenuSelectColumns(self, evt):
         frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY, title="Select Columns")
         frame.Show(True)
+
+    def OnMenuEditChannels(self, e):
+        dlg = EditChannelsDialog(parent=self, id=wx.ID_ANY)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def OnMenuEditPlotTitle(self, e):
         dlg = EditPlotTitleDialog(parent=self, id=wx.ID_ANY)
