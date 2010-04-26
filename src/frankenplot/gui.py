@@ -334,7 +334,7 @@ class PlotControlPanel(wx.Panel):
 
         main_sizer.Add(sizer, flag=wx.EXPAND)
 
-        # mode selector
+        # draw mode selector
         mode_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.sum_rb = wx.RadioButton(parent=self, id=wx.ID_ANY, label="Sum",
                 style=wx.RB_GROUP)
@@ -350,10 +350,10 @@ class PlotControlPanel(wx.Panel):
                 flag=wx.ALIGN_TOP)
         sizer.Add(mode_sizer, pos=(1,1))
 
-        # channel mode controls
+        # draw channel mode controls
         self._init_chan_mode_ctrls()
 
-        # plot options
+        # draw plot options
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
         sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
         self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
@@ -511,13 +511,13 @@ class PlotPanel(wxmpl.PlotPanel):
         try:
             x_col = self.data.getColumn(x_name)
         except xdp.ColumnNameError:
-            fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
+            util.fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
 
         # fetch y
         try:
             y_col = self.data.getColumn(y_name)
         except xdp.ColumnNameError:
-            fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
+            util.fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
 
         # determine which columns to plot
         if not columns:
@@ -533,7 +533,7 @@ class PlotPanel(wxmpl.PlotPanel):
             if self.data.hasColumn(z_name):
                 zExpr = '(%s)/$%s' % (zExpr, z_name)
             else:
-                fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
+                util.fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
         z_col = self.data.evaluate(zExpr)
         x, y, z = fdata.makeXYZ(x_col, y_col, z_col)
 
@@ -826,9 +826,9 @@ class PlotApp(wx.App):
             self.hdr, self.data = xdp.io.readFile(filename)
         except IOError, e:
             if e.strerror:
-                fatal_error('could not load `%s\': %s', fileName, e.strerror)
+                util.fatal_error('could not load `%s\': %s', filename, e.strerror)
             else:
-                fatal_error('could not load `%s\': %s', fileName, e)
+                util.fatal_error('could not load `%s\': %s', filename, e)
         # if filename is None, xdp.io.readFile raises:
         #     AttributeError: 'NoneType' object has no attribute 'rfind'
         except AttributeError:

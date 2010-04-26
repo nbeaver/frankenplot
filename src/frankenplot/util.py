@@ -2,7 +2,9 @@
 # frankenplot.util: miscellaneous utility functions
 #
 
+import os
 import re
+import sys
 
 from frankenplot import exceptions
 
