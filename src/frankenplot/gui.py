@@ -358,6 +358,7 @@ class PlotControlPanel(wx.Panel):
         sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
         self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
         self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
+        self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
 
         sizer.Add(self.corr_cb)
         sizer.Add(self.norm_cb)
@@ -369,6 +370,8 @@ class PlotControlPanel(wx.Panel):
 
         # set default state
         self._set_sum_mode()
+        # FIXME: get the proper default value
+        self.norm_cb.SetValue(True)
 
     def _init_chan_mode_ctrls(self):
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Select")
@@ -477,6 +480,9 @@ class PlotControlPanel(wx.Panel):
 
     def in_channel_mode(self):
         return self.mode == self.CHANNEL_MODE
+
+    def OnNormalize(self, e):
+        self.parent.plot_panel.change_plot(normalize=self.norm_cb.GetValue())
 
 # ============================================================================
 
