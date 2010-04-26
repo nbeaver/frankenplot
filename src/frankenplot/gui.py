@@ -730,23 +730,34 @@ class MainWindow(wx.Frame):
         editMenu = wx.Menu()
         menuBar.Append(editMenu, "&Edit")
 
-        item = editMenu.Append(id=wx.ID_ANY, text="Plot tit&le...",
+        item = editMenu.Append(id=wx.ID_ANY, text="Plot Tit&le...",
                 help="Edit plot title")
         self.Bind(wx.EVT_MENU, self.OnMenuEditPlotTitle, item)
 
         # FIXME: implement
         item = editMenu.Append(id=wx.ID_ANY, text="Col&ormap...",
                 help="Edit plot colormap")
+        item.Enable(False)
 
         editMenu.AppendSeparator()
 
         item = editMenu.Append(wx.ID_ANY, "Cha&nnels...",
             "Edit channels")
         self.Bind(wx.EVT_MENU, self.OnMenuEditChannels, item)
+        item.Enable(False)
 
         item = editMenu.Append(wx.ID_ANY, "&Columns...",
             "Select displayed columns")
         self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
+        item.Enable(False)
+
+        # View menu
+        view_menu = wx.Menu()
+        menuBar.Append(view_menu, "&View")
+
+        item = view_menu.Append(wx.ID_ANY, "Plot Controls",
+                help="Toggle plot controls", kind=wx.ITEM_CHECK)
+        item.Enable(False)
 
         # Help menu
         helpMenu = wx.Menu()
