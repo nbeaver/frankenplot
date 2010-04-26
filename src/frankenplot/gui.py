@@ -309,6 +309,9 @@ class SelectColumnsFrame(wx.Frame):
 # ============================================================================
 
 class PlotControlPanel(wx.Panel):
+    SUM_MODE = 1
+    CHANNEL_MODE = 2
+
     def __init__(self, parent, id, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.parent = parent
@@ -365,7 +368,6 @@ class PlotControlPanel(wx.Panel):
         self.Fit()
 
         # set default state
-        self._set_channel(self.channel_nums[0])
         self._set_sum_mode()
 
     def _init_chan_mode_ctrls(self):
@@ -403,7 +405,11 @@ class PlotControlPanel(wx.Panel):
 
     def OnSelectROI(self, e):
         roi = int(self.roi_selector.GetValue())
-        self.parent.plot_panel.change_plot(roi_number=roi)
+
+        if self.in_sum_mode():
+            self.parent.plot_panel.change_plot(roi_number=roi, columns=False)
+        elif self.in_channel_mode():
+            self.parent.plot_panel.plot_channel(channel=self.cur_channel, roi=roi)
 
     def OnNextChan(self, e):
         self._set_channel(self.cur_channel + 1)
@@ -435,20 +441,42 @@ class PlotControlPanel(wx.Panel):
             self.chan_next_btn.Enable()
 
         # update plot
+        self.parent.plot_panel.plot_channel(self.cur_channel)
 
     def OnChanMode(self, e): self._set_chan_mode()
     def _set_chan_mode(self):
+        self.mode = self.CHANNEL_MODE
+
         for item in self.cm_items:
             item.Enable()
 
+        # initialise channel selector
+        try:
+            self._set_channel(self.cur_channel)
+        except AttributeError:
+            self._set_channel(self.channel_nums[0])
+
         # update plot
+        self.parent.plot_panel.plot_channel(self.cur_channel)
+
 
     def OnSumMode(self, e): self._set_sum_mode()
     def _set_sum_mode(self):
+        self.mode = self.SUM_MODE
+
         for item in self.cm_items:
             item.Disable()
 
         # update plot
+        roi = self.roi_selector.GetValue()
+        if roi:
+            self.parent.plot_panel.change_plot(roi_number=int(roi), columns=False)
+
+    def in_sum_mode(self):
+        return self.mode == self.SUM_MODE
+
+    def in_channel_mode(self):
+        return self.mode == self.CHANNEL_MODE
 
 # ============================================================================
 
@@ -471,7 +499,7 @@ class PlotPanel(wxmpl.PlotPanel):
 
     # FIXME: move these default values somewhere else
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0):
+             roi_number=0, columns=None):
         # fetch x
         try:
             x_col = self.data.getColumn(x_name)
@@ -485,11 +513,12 @@ class PlotPanel(wxmpl.PlotPanel):
             fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
 
         # determine which columns to plot
-        columns = []
-        for col in self.rois[roi_number]:
-            roi, channel = util.parse_data_column_name(col)
-            if self.channels[channel]:
-                columns.append(col)
+        if not columns:
+            columns = []
+            for col in self.rois[roi_number]:
+                roi, channel = util.parse_data_column_name(col)
+                if self.channels[channel]:
+                    columns.append(col)
 
         # calculate z
         zExpr = '+'.join(['$'+x for x in columns])
@@ -549,9 +578,17 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts["normalize"] = normalize
         self.plot_opts["colormap"] = colormap
         self.plot_opts["roi_number"] = roi_number
+        self.plot_opts["columns"] = columns
 
         # update plot cp elements
-        self.parent.plot_cp.roi_selector.SetValue(str(roi))
+        self.parent.plot_cp.roi_selector.SetValue(str(roi_number))
+
+    def plot_channel(self, channel, roi=None):
+        if roi is None:
+            roi = self.plot_opts["roi_number"]
+
+        col = util.get_data_column_name(roi=roi, channel=channel)
+        self.change_plot(columns=[col], roi_number=roi)
 
     def change_plot(self, **kwargs):
         opts = copy.copy(self.plot_opts)
