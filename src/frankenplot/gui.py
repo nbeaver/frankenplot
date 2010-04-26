@@ -324,6 +324,7 @@ class PlotControlPanel(wx.Panel):
         # FIXME: get correct ROIs
         rois = [str(i) for i in range(3)]
         self.roi_selector = wx.ComboBox(parent=self, choices=rois)
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
         sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
                 flag=wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.roi_selector, pos=(0,1))
@@ -400,6 +401,10 @@ class PlotControlPanel(wx.Panel):
         self.cm_items = (self.chan_prev_btn, self.chan_sel,
                          self.chan_next_btn, self.enable_chan_cb)
 
+    def OnSelectROI(self, e):
+        roi = int(self.roi_selector.GetValue())
+        self.parent.plot_panel.change_plot(roi_number=roi)
+
     def OnNextChan(self, e):
         self._set_channel(self.cur_channel + 1)
 
@@ -448,8 +453,9 @@ class PlotControlPanel(wx.Panel):
 # ============================================================================
 
 class PlotPanel(wxmpl.PlotPanel):
-    def __init__(self, data, *args, **kwargs):
-        wxmpl.PlotPanel.__init__(self, *args, **kwargs)
+    def __init__(self, parent, id, data, *args, **kwargs):
+        wxmpl.PlotPanel.__init__(self, parent, id, *args, **kwargs)
+        self.parent = parent
 
         self.data = data
 
@@ -463,9 +469,9 @@ class PlotPanel(wxmpl.PlotPanel):
         self.img = None
         self.cb = None
 
+    # FIXME: move these default values somewhere else
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0, columns=None):
-
+             roi_number=0):
         # fetch x
         try:
             x_col = self.data.getColumn(x_name)
@@ -478,12 +484,12 @@ class PlotPanel(wxmpl.PlotPanel):
         except xdp.ColumnNameError:
             fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
 
-        # determine the columns to plot if no columns were specified
-        if columns is None:
-            columns = self.rois[roi_number]
-            if not columns:
-                fatal_error('`%s\' contains no data for ROI %d',
-                    os.path.basename(fileName), roi_number)
+        # determine which columns to plot
+        columns = []
+        for col in self.rois[roi_number]:
+            roi, channel = util.parse_data_column_name(col)
+            if self.channels[channel]:
+                columns.append(col)
 
         # calculate z
         zExpr = '+'.join(['$'+x for x in columns])
@@ -543,7 +549,9 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts["normalize"] = normalize
         self.plot_opts["colormap"] = colormap
         self.plot_opts["roi_number"] = roi_number
-        self.plot_opts["columns"] = columns
+
+        # update plot cp elements
+        self.parent.plot_cp.roi_selector.SetValue(str(roi))
 
     def change_plot(self, **kwargs):
         opts = copy.copy(self.plot_opts)
@@ -573,7 +581,7 @@ class MainWindow(wx.Frame):
 
         # initialise subpanels
         self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data)
-        self.plot_opts = PlotControlPanel(parent=self, id=wx.ID_ANY)
+        self.plot_cp = PlotControlPanel(parent=self, id=wx.ID_ANY)
 
         # misc initialisation
         self._initialise_printer()
@@ -582,7 +590,7 @@ class MainWindow(wx.Frame):
         # lay out frame
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.plot_panel, proportion=1)
-        sizer.Add(self.plot_opts)
+        sizer.Add(self.plot_cp)
         self.SetSizer(sizer)
         self.Fit()
 
