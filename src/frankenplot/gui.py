@@ -311,6 +311,10 @@ class SelectColumnsFrame(wx.Frame):
 class PlotControlPanel(wx.Panel):
     def __init__(self, parent, id, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
+        self.parent = parent
+
+        self.channels = self.parent.plot_panel.channels
+        self.channel_nums = self.channels.keys()
 
         self.main_sizer = main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -330,10 +334,10 @@ class PlotControlPanel(wx.Panel):
         mode_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.sum_rb = wx.RadioButton(parent=self, id=wx.ID_ANY, label="Sum",
                 style=wx.RB_GROUP)
-        self.Bind(wx.EVT_RADIOBUTTON, self.OnModeSelect, self.sum_rb)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnSumMode, self.sum_rb)
         self.chan_rb = wx.RadioButton(parent=self, id=wx.ID_ANY,
                 label="Channel")
-        self.Bind(wx.EVT_RADIOBUTTON, self.OnModeSelect, self.chan_rb)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnChanMode, self.chan_rb)
 
         mode_sizer.Add(self.sum_rb)
         mode_sizer.Add(self.chan_rb)
@@ -360,20 +364,23 @@ class PlotControlPanel(wx.Panel):
         self.Fit()
 
         # set default state
+        self._set_channel(self.channel_nums[0])
         self._set_sum_mode()
 
     def _init_chan_mode_ctrls(self):
-        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Mode")
+        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Select")
         cm_sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
 
         # channel selector
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # FIXME: get proper list of channels
-        channels = [str(i) for i in range(16)]
         self.chan_prev_btn = wx.Button(parent=self, label="Prev")
-        self.chan_sel = wx.ComboBox(parent=self, choices=channels)
+        self.Bind(wx.EVT_BUTTON, self.OnPrevChan, self.chan_prev_btn)
+        self.chan_sel = wx.ComboBox(parent=self,
+                                    choices=[str(c) for c in self.channel_nums])
+        self.Bind(wx.EVT_COMBOBOX, self.OnSelectChan, self.chan_sel)
         self.chan_next_btn = wx.Button(parent=self, label="Next")
+        self.Bind(wx.EVT_BUTTON, self.OnNextChan, self.chan_next_btn)
 
         sizer.Add(self.chan_prev_btn)
         sizer.Add(self.chan_sel, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -382,6 +389,7 @@ class PlotControlPanel(wx.Panel):
         cm_sizer.Add(sizer)
 
         self.enable_chan_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Enable")
+        self.Bind(wx.EVT_CHECKBOX, self.OnEnableChan, self.enable_chan_cb)
         cm_sizer.Add(self.enable_chan_cb)
 
         # add to main sizer
@@ -392,19 +400,50 @@ class PlotControlPanel(wx.Panel):
         self.cm_items = (self.chan_prev_btn, self.chan_sel,
                          self.chan_next_btn, self.enable_chan_cb)
 
+    def OnNextChan(self, e):
+        self._set_channel(self.cur_channel + 1)
+
+    def OnPrevChan(self, e):
+        self._set_channel(self.cur_channel - 1)
+
+    def OnSelectChan(self, e):
+        self._set_channel(int(self.chan_sel.GetValue()))
+
+    def OnEnableChan(self, e):
+        self.channels[self.cur_channel] = self.enable_chan_cb.GetValue()
+
+    def _set_channel(self, channel):
+        # update state
+        self.enable_chan_cb.SetValue(self.channels[channel])
+        self.cur_channel = channel
+        self.chan_sel.SetValue(str(channel))
+
+        # update prev/next buttons' enabled/disabled status
+        if self.cur_channel == self.channel_nums[0]:
+            self.chan_prev_btn.Disable()
+        else:
+            self.chan_prev_btn.Enable()
+
+        if self.cur_channel == self.channel_nums[-1]:
+            self.chan_next_btn.Disable()
+        else:
+            self.chan_next_btn.Enable()
+
+        # update plot
+
+    def OnChanMode(self, e): self._set_chan_mode()
     def _set_chan_mode(self):
         for item in self.cm_items:
             item.Enable()
 
+        # update plot
+
+    def OnSumMode(self, e): self._set_sum_mode()
     def _set_sum_mode(self):
         for item in self.cm_items:
             item.Disable()
 
-    def OnModeSelect(self, e):
-        if self.sum_rb.GetValue():
-            self._set_sum_mode()
-        else:
-            self._set_chan_mode()
+        # update plot
 
 # ============================================================================
 
