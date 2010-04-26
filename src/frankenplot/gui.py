@@ -506,7 +506,7 @@ class PlotPanel(wxmpl.PlotPanel):
 
     # FIXME: move these default values somewhere else
     def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0, columns=None):
+             roi_number=0, columns=None, title=""):
         # fetch x
         try:
             x_col = self.data.getColumn(x_name)
@@ -548,9 +548,7 @@ class PlotPanel(wxmpl.PlotPanel):
             axes.xaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
             axes.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
 
-        # FIXME
-#        axes.set_title('ROI %d of %s' % (roi_number, self.filename))
-        axes.set_title("")
+        axes.set_title(title)
         axes.set_ylabel(y_name)
 
         # plot the data and colorbar
@@ -586,6 +584,7 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts["colormap"] = colormap
         self.plot_opts["roi_number"] = roi_number
         self.plot_opts["columns"] = columns
+        self.plot_opts["title"] = title
 
         # update plot cp elements
         self.parent.plot_cp.roi_selector.SetValue(str(roi_number))
@@ -616,6 +615,42 @@ class PlotPanel(wxmpl.PlotPanel):
             rois.setdefault(roi, []).append(col)
 
         return rois, channels
+
+# ============================================================================
+
+class EditPlotTitleDialog(wx.Dialog):
+    def __init__(self, parent, id, title="Edit Plot Title", **kwargs):
+        wx.Dialog.__init__(self, parent, id, title, size=(300,75), **kwargs)
+        self.parent = parent
+
+        main_sizer = wx.GridBagSizer()
+
+        main_sizer.Add(wx.StaticText(parent=self, label="Plot title: "),
+                flag=wx.ALIGN_CENTER_VERTICAL, pos=(0,0))
+
+        self.title_txt = wx.TextCtrl(parent=self, style=wx.TE_PROCESS_ENTER)
+        self.title_txt.SetValue(self.parent.plot_panel.plot_opts["title"])
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnOK, self.title_txt)
+        self.title_txt.SetMinSize((200, -1))
+        main_sizer.Add(self.title_txt, pos=(0,1))
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ok_btn = wx.Button(self, label="OK", id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self.OnOK, ok_btn)
+        cancel_btn = wx.Button(self, label="Cancel", id=wx.ID_CANCEL)
+
+        sizer.Add(ok_btn)
+        sizer.Add(cancel_btn)
+        main_sizer.Add(sizer, pos=(1,1))
+
+        self.SetSizer(main_sizer)
+
+    def OnCancel(self, e):
+        self.Close()
+
+    def OnOK(self, e):
+        self.parent.plot_panel.change_plot(title=self.title_txt.GetValue())
+        self.Close()
 
 # ============================================================================
 
@@ -672,7 +707,6 @@ class MainWindow(wx.Frame):
                 "Preview the print version of the current plot")
             self.Bind(wx.EVT_MENU, self.OnMenuFilePrintPreview, item)
 
-        id = wx.NewId()
         item = fileMenu.Append(wx.ID_PRINT, '&Print...\tCtrl+P',
             "Print the current plot")
         self.Bind(wx.EVT_MENU, self.OnMenuFilePrint, item)
@@ -686,6 +720,10 @@ class MainWindow(wx.Frame):
         # Edit menu
         editMenu = wx.Menu()
         menuBar.Append(editMenu, "&Edit")
+
+        item = editMenu.Append(id=wx.ID_ANY, text="Plot Tit&le",
+                help="Edit plot title")
+        self.Bind(wx.EVT_MENU, self.OnMenuEditPlotTitle, item)
 
         item = editMenu.Append(wx.ID_ANY, "&Columns...",
             "Select displayed columns")
@@ -767,6 +805,11 @@ class MainWindow(wx.Frame):
     def OnMenuSelectColumns(self, evt):
         frame = SelectColumnsFrame(parent=self, id=wx.ID_ANY, title="Select Columns")
         frame.Show(True)
+
+    def OnMenuEditPlotTitle(self, e):
+        dlg = EditPlotTitleDialog(parent=self, id=wx.ID_ANY)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def plot(self, *args, **kwargs):
         return self.plot_panel.plot(*args, **kwargs)
