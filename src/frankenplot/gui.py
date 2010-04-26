@@ -847,6 +847,9 @@ class MainWindow(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def get_figure(self):
+        return self.plot_panel.get_figure()
+
     def plot(self, *args, **kwargs):
         return self.plot_panel.plot(*args, **kwargs)
 
