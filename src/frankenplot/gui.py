@@ -394,7 +394,8 @@ class PlotControlPanel(wx.Panel):
 
         cm_sizer.Add(sizer)
 
-        self.enable_chan_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Enable")
+        self.enable_chan_cb = wx.CheckBox(parent=self, id=wx.ID_ANY,
+                                          label="Enable channel")
         self.Bind(wx.EVT_CHECKBOX, self.OnEnableChan, self.enable_chan_cb)
         cm_sizer.Add(self.enable_chan_cb)
 
