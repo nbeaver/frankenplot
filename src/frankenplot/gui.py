@@ -720,9 +720,14 @@ class MainWindow(wx.Frame):
         editMenu = wx.Menu()
         menuBar.Append(editMenu, "&Edit")
 
-        item = editMenu.Append(id=wx.ID_ANY, text="Plot Tit&le",
+        item = editMenu.Append(id=wx.ID_ANY, text="Plot tit&le...",
                 help="Edit plot title")
         self.Bind(wx.EVT_MENU, self.OnMenuEditPlotTitle, item)
+
+        item = editMenu.Append(id=wx.ID_ANY, text="Col&ormap...",
+                help="Edit plot colormap")
+
+        editMenu.AppendSeparator()
 
         item = editMenu.Append(wx.ID_ANY, "&Columns...",
             "Select displayed columns")
