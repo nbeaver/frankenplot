@@ -1,0 +1,2 @@
+class InvalidDataColumnNameException(Exception):
+    pass
