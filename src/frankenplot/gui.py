@@ -16,7 +16,7 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 import wxmpl
 import xdp
 
-from frankenplot import data as fdata, util
+from frankenplot import data as fdata, exceptions as exc, util
 
 # ============================================================================
 
@@ -551,21 +551,19 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot(**opts)
 
     def _parse_columns(self, columns):
-        roi_re = re.compile(r"corr_roi(\d+)_(\d+)")
-
         channels = dict()
         rois = dict()
 
-        search = roi_re.search
         for col in columns:
-            match = search(col)
-            if match:
-                channel, roi = match.groups()
-                channels[int(channel)] = True
-                rois.setdefault(int(roi), []).append(col)
+            try:
+                roi, channel = util.parse_data_column_name(col)
+            except exc.InvalidDataColumnNameException:
+                continue
+
+            channels[channel] = True
+            rois.setdefault(roi, []).append(col)
 
         return rois, channels
-
 
 # ============================================================================
 
