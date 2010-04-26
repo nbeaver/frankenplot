@@ -324,8 +324,7 @@ class PlotControlPanel(wx.Panel):
         sizer = wx.GridBagSizer()
 
         # ROI selector
-        # FIXME: get correct ROIs
-        rois = [str(i) for i in range(3)]
+        rois = [str(i) for i in sorted(self.parent.plot_panel.rois.keys())]
         self.roi_selector = wx.ComboBox(parent=self, choices=rois)
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
         sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
