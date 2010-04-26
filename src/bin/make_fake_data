@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+import numpy as np
+import random
+import sys
+
+header = """# SFF main_header 1
+# %%devices = %s;
+"""
+
+x_range = np.arange(1464, 2179, 15)
+y_range = np.arange(12309, 13359, 10)
+rand_func = lambda: random.gauss(1000, 100)
+
+rois = 4
+channels = 32
+
+def make_column_name(roi, channel):
+    return "corr_roi%d_%d" % (channel, roi)
+
+columns = ['sam_vert', 'sam_hor', 'Io', 'It']
+for roi in xrange(rois):
+    for chan in xrange(channels):
+        columns.append(make_column_name(roi, chan))
+columns = " ".join(columns)
+
+f = open(sys.argv[1], "w")
+f.write(header % columns)
+for x in x_range:
+    for y in y_range:
+        cols = [x, y, rand_func(), rand_func()]
+
+        for roi in xrange(rois):
+            for chan in xrange(channels):
+                z = rand_func()
+
+                r = random.random()
+                if r < 1e-5:
+                    z += 2e4
+                cols.append(z)
+
+        s = "\t".join(str(i) for i in cols)
+        f.write("%s\n" % s)
+f.close()
