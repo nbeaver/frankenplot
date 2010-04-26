@@ -17,7 +17,7 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 import wxmpl
 import xdp
 
-from frankenplot import data as fdata, exceptions as exc, util
+from frankenplot import data as fdata, exceptions as exc, util, __version__
 
 # ============================================================================
 
@@ -660,6 +660,11 @@ class EditChannelsDialog(wx.Dialog):
 # ============================================================================
 
 class MainWindow(wx.Frame):
+    ABOUT_TITLE = 'About frankenplot'
+    ABOUT_MESSAGE = ('frankenplot %s\n' % __version__
+        + 'Written by Ken McIvor <mcivor@iit.edu>\n'
+        + 'Copyright (c) 2006--2010, Illinois Institute of Technology')
+
     def __init__(self, parent, id, title, data, **kwargs):
         wx.Frame.__init__(self, parent, id, title, **kwargs)
 
