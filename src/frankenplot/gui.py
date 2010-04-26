@@ -4,6 +4,7 @@
 
 import copy
 import fnmatch
+import os.path
 import re
 import sys
 
@@ -791,7 +792,7 @@ class MainWindow(wx.Frame):
             return
 
         try:
-            self.panel.print_figure(fileName)
+            self.plot_panel.print_figure(fileName)
         except IOError, e:
             if e.strerror:
                 err = e.strerror
