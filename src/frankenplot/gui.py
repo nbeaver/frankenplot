@@ -380,12 +380,12 @@ class PlotControlPanel(wx.Panel):
         # channel selector
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.chan_prev_btn = wx.Button(parent=self, label="Prev")
+        self.chan_prev_btn = wx.Button(parent=self, label="<--")
         self.Bind(wx.EVT_BUTTON, self.OnPrevChan, self.chan_prev_btn)
         self.chan_sel = wx.ComboBox(parent=self,
                                     choices=[str(c) for c in self.channel_nums])
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectChan, self.chan_sel)
-        self.chan_next_btn = wx.Button(parent=self, label="Next")
+        self.chan_next_btn = wx.Button(parent=self, label="-->")
         self.Bind(wx.EVT_BUTTON, self.OnNextChan, self.chan_next_btn)
 
         sizer.Add(self.chan_prev_btn)
