@@ -357,6 +357,8 @@ class PlotControlPanel(wx.Panel):
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
         sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
         self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
+        # FIXME: get the proper default value
+        self.corr_cb.SetValue(True)
         self.corr_cb.Disable()
         self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
         self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
