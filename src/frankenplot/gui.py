@@ -432,6 +432,10 @@ class PlotControlPanel(wx.Panel):
         self.channels[self.cur_channel] = self.enable_chan_cb.GetValue()
 
     def _set_channel(self, channel):
+        if not self.in_channel_mode():
+            # FIXME: use a better exception
+            raise Exception("Changing channels is not allowed when not in Channel mode")
+
         # update state
         self.enable_chan_cb.SetValue(self.channels[channel])
         self.cur_channel = channel
