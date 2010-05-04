@@ -27,6 +27,14 @@ def natural_sort(lst):
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(lst, key=alphanum_key)
 
+def get_data_column_name(roi, channel, corrected):
+    if corrected:
+        stem = "corr_roi"
+    else:
+        stem = "roi"
+
+    return "%s%d_%d" % (stem, channel, roi)
+
 roi_re = re.compile(r"(corr_)?roi(\d+)_(\d+)")
 def parse_data_column_name(col):
     match = roi_re.search(col)

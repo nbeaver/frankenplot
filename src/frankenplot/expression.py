@@ -4,7 +4,7 @@
 
 import re
 
-from frankenplot import defaults
+from frankenplot import defaults, util
 
 # ============================================================================
 
@@ -70,12 +70,7 @@ class ChannelExpression(FluorExpression):
         FluorExpression.__init__(self, **kwargs)
 
     def column_name(self):
-        if self.corrected:
-            stem = "corr_roi"
-        else:
-            stem = "roi"
-
-        return "%s%d_%d" % (stem, self.channel, self.roi)
+        return util.get_data_column_name(self.roi, self.channel, self.corrected)
 
     def __str__(self):
         self.expr = "$%s" % self.column_name()
