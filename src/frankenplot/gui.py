@@ -587,6 +587,28 @@ class PlotPanel(wxmpl.PlotPanel):
         col = util.get_data_column_name(roi=roi, channel=channel)
         self.change_plot(columns=[col], roi_number=roi)
 
+    def plot_roi(self, roi_number, corrected=True, z_name=None, normalize=True,
+                 **kwargs):
+        if corrected:
+            group_name = "corr_roi"
+        else:
+            group_name = "roi"
+
+        z_expr = "%%%s_%s" % (group_name, roi_number)
+
+        if normalize:
+            if not z_name:
+                raise ValueError(
+                    "'z_name' must be specified when 'normalize' is True'")
+
+            z_expr = "(%s)/$%s" % (z_expr, z_name)
+
+        # update state
+        self.plot_opts["roi_number"] = roi_number
+        self.app.plot_cp.roi_selector.SetValue(str(roi_number))
+
+        return self.plot(z_expr=z_expr, **kwargs)
+
     def change_plot(self, **kwargs):
         """Update the current plot with the given parameters.
 
@@ -905,6 +927,9 @@ class PlotApp(wx.App):
 
     def plot(self, *args, **kwargs):
         return self.main_window.plot_panel.plot(*args, **kwargs)
+
+    def plot_roi(self, *args, **kwargs):
+        return self.main_window.plot_panel.plot_roi(*args, **kwargs)
 
     def _parse_columns(self, columns):
         channels = dict()

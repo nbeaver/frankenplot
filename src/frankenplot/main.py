@@ -74,7 +74,7 @@ def run(arguments):
     filename, roi_number = args
 
     app = gui.PlotApp(filename=filename)
-    app.plot(x_name=opts.xName, y_name=opts.yName, z_name=opts.zName,
-                normalize=opts.normalize, colormap=opts.colormap,
-                roi_number=roi_number)
+    app.plot_roi(roi_number, z_name=opts.zName, x_name=opts.xName,
+                 y_name=opts.yName, normalize=opts.normalize,
+                 colormap=opts.colormap)
     app.MainLoop()
