@@ -41,6 +41,9 @@ class FluorExpression(Expression):
     def _normalize_expr(self, expression, z_name):
         return "(%s)/$%s" % (expression, z_name)
 
+    def on_plot(self, figure, app):
+        app.plot_cp.roi_selector.SetValue(str(self.roi))
+
 class ROIExpression(FluorExpression):
     def __init__(self, roi, *args, **kwargs):
         self.roi = roi
@@ -53,9 +56,6 @@ class ROIExpression(FluorExpression):
     def __str__(self):
         self.expr = self.group_name()
         return FluorExpression.__str__(self)
-
-    def on_plot(self, figure, app):
-        app.plot_cp.roi_selector.SetValue(str(self.roi))
 
 class ChannelExpression(FluorExpression):
     def __init__(self, roi, channel, *args, **kwargs):
