@@ -37,7 +37,7 @@ class FluorExpression(Expression):
             self.normalize = normalize
 
         if z_name is None:
-            self.z_name = defaults.z_name
+            self.z_name = defaults.fluor_mode.z_name
         else:
             self.z_name = z_name
 

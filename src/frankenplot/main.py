@@ -36,8 +36,10 @@ def parse_arguments(args):
         help='y-axis column name ("%s" is default)' % defaults.y_name, metavar='N')
 
     parser.add_option('-z',
-        action='store', type='string', dest='zName', default=defaults.z_name,
-        help='z-axis column name ("%s" is default)' % defaults.z_name, metavar='N')
+        action='store', type='string', dest='zName',
+        default=defaults.fluor_mode.z_name,
+        help='z-axis column name ("%s" is default)' % defaults.fluor_mode.z_name,
+        metavar='N')
 
     # FIXME move to Edit -> Preferences
     parser.add_option('-n',
@@ -82,7 +84,7 @@ def run(arguments):
     # update plot defaults based on arguments
     defaults.x_name = opts.xName
     defaults.y_name = opts.yName
-    defaults.z_name = opts.zName
+    defaults.fluor_mode.z_name = opts.zName
     defaults.fluor_mode.normalize = opts.normalize
 
     z_expr = expression.ROIExpression(roi_number)
