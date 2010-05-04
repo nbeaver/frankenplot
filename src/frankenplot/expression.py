@@ -24,3 +24,13 @@ def expand_groups(expression, groups):
         return "(%s)" % "+".join(["$" + col for col in groups[group]])
 
     return GROUP_RE.sub(group_repl, expression)
+
+def normalize(expression, z_name):
+    return "(%s)/$%s" % (expression, z_name)
+
+# FIXME: may be broken
+def _denormalize(expression, z_name):
+    # FIXME: also remove enclosing parens
+    ptn = r'/\$%s\Z' % (z_name)
+    norm_re = re.compile(ptn)
+    return re.sub(ptn, "\1", expression)
