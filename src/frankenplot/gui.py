@@ -426,9 +426,9 @@ class PlotControlPanel(wx.Panel):
         roi = int(self.roi_selector.GetValue())
 
         if self.in_sum_mode():
-            self.parent.plot_panel.change_plot(roi_number=roi, columns=False)
+            self.app.plot_panel.change_roi_plot(roi_number=roi)
         elif self.in_channel_mode():
-            self.parent.plot_panel.plot_channel(channel=self.cur_channel, roi=roi)
+            self.app.plot_panel.plot_channel(channel=self.cur_channel, roi=roi)
 
     def OnNextChan(self, e):
         self._set_channel(self.cur_channel + 1)
@@ -498,7 +498,7 @@ class PlotControlPanel(wx.Panel):
         # update plot to show the active ROI
         roi = self.roi_selector.GetValue()
         if roi:
-            self.parent.plot_panel.change_plot(roi_number=int(roi), columns=False)
+            self.app.plot_panel.change_roi_plot(roi_number=int(roi))
 
     def in_sum_mode(self):
         return self.mode == self.SUM_MODE
@@ -525,6 +525,7 @@ class PlotPanel(wxmpl.PlotPanel):
         # dict for storing the parameters of the current plot so that it's
         # easy to change the plot later (see change_plot())
         self.plot_opts = dict()
+        self.roi_plot_opts = dict()
 
         # colorbar instance variables
         self.img = None
@@ -584,16 +585,23 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts["colormap"] = colormap
         self.plot_opts["title"] = title
 
-    def plot_channel(self, channel, roi=None):
+    def plot_channel(self, channel, roi=None, corrected=True, normalize=None):
         """Plot an individual channel.
 
         """
 
         if roi is None:
-            roi = self.plot_opts["roi_number"]
+            roi = self.roi_plot_opts["roi_number"]
 
-        col = util.get_data_column_name(roi=roi, channel=channel)
-        self.change_plot(columns=[col], roi_number=roi)
+        if normalize is None:
+            normalize = self.roi_plot_opts["normalize"]
+
+        z_expr = "$%s" % util.get_data_column_name(roi, channel, corrected)
+
+        if normalize:
+            expression.normalize(z_expr, self.roi_plot_opts["z_name"])
+
+        self.change_plot(z_expr=z_expr)
 
     def plot_roi(self, roi_number, corrected=True, z_name=None, normalize=True,
                  **kwargs):
@@ -612,8 +620,14 @@ class PlotPanel(wxmpl.PlotPanel):
             z_expr = "(%s)/$%s" % (z_expr, z_name)
 
         # update state
-        self.plot_opts["roi_number"] = roi_number
+        self.roi_plot_opts["roi_number"] = roi_number
+        self.roi_plot_opts["corrected"] = corrected
+        self.roi_plot_opts["normalize"] = normalize
+        self.roi_plot_opts["z_name"] = z_name
         self.app.plot_cp.roi_selector.SetValue(str(roi_number))
+
+        # ignore "z_expr" if it's set
+        kwargs.pop("z_expr", None)
 
         return self.plot(z_expr=z_expr, **kwargs)
 
@@ -627,6 +641,12 @@ class PlotPanel(wxmpl.PlotPanel):
         opts = copy.copy(self.plot_opts)
         opts.update(kwargs)
         self.plot(**opts)
+
+    def change_roi_plot(self, **kwargs):
+        opts = copy.copy(self.roi_plot_opts)
+        opts.update(self.plot_opts)
+        opts.update(kwargs)
+        self.plot_roi(**opts)
 
     def _parse_columns(self, columns):
         channels = dict()

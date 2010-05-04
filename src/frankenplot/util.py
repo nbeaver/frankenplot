@@ -18,8 +18,21 @@ def fatal_error(msg, *args):
         print >> sys.stderr, '%s: %s' % (os.path.basename(sys.argv[0]), msg)
     sys.exit(1)
 
-def get_data_column_name(roi, channel):
-    return "corr_roi%d_%d" % (channel, roi)
+def get_data_column_name(roi, channel, corrected=True):
+    if corrected:
+        stem = "corr_roi"
+    else:
+        stem = "roi"
+
+    return "%s%d_%d" % (stem, channel, roi)
+
+def get_roi_group_name(roi_number, corrected=True):
+    if corrected:
+        stem = "corr_roi"
+    else:
+        stem = "roi"
+
+    return "%%%s_%d" % (stem, roi)
 
 def natural_sort(lst):
     """Sort a list in natural, human order
