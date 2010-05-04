@@ -30,14 +30,14 @@ def natural_sort(lst):
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(lst, key=alphanum_key)
 
-roi_re = re.compile(r"corr_roi(\d+)_(\d+)")
+roi_re = re.compile(r"(corr_)?roi(\d+)_(\d+)")
 def parse_data_column_name(col):
     match = roi_re.search(col)
 
     try:
-        channel, roi = match.groups()
+        corrected, channel, roi = match.groups()
     except AttributeError:
         s = "Invalid data column name: '%s'" % col
         raise exceptions.InvalidDataColumnNameException(s)
 
-    return int(roi), int(channel)
+    return int(roi), int(channel), bool(corrected)
