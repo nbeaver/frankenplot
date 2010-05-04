@@ -12,11 +12,6 @@ from frankenplot import util
 
 # ============================================================================
 
-# groups are signified by a percent sign (e.g., '%roi1')
-GROUP_RE = re.compile(r'%[a-zA-Z_][a-zA-Z0-9_]*')
-
-# ============================================================================
-
 def getNumberUnique(vect):
     """
     Return the number of times elements appear in the vector 'vect' without
@@ -88,20 +83,6 @@ def getUniqueSequence(vect, count):
                 i += 1
 
     return nx.array(unique)
-
-def expand_groups(expression, groups):
-    """Expand any group names into sums over their constituent columns
-
-    Replace any groups "%group" with "(col1 +col2+...+colN)" where
-    (col1, ..., colN) comprise the group.
-
-    """
-
-    def group_repl(m):
-        group = m.group(0)
-        return "(%s)" % "+".join(["$" + col for col in groups[group]])
-
-    return GROUP_RE.sub(group_repl, expression)
 
 def get_plot_data(data, x_name, y_name, z_expr):
     # fetch x

@@ -17,7 +17,11 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 import wxmpl
 import xdp
 
-from frankenplot import data as fdata, exceptions as exc, util, __version__
+from frankenplot import (data as fdata,
+                         exceptions as exc,
+                         expression,
+                         util,
+                         __version__)
 
 # ============================================================================
 
@@ -529,7 +533,7 @@ class PlotPanel(wxmpl.PlotPanel):
     # FIXME: move these default values somewhere else
     def plot(self, x_name, y_name, z_expr, colormap="hot", title=""):
         # replace groups in the expression with their constituent columns
-        z_expr = fdata.expand_groups(z_expr, self.app.groups)
+        z_expr = expression.expand_groups(z_expr, self.app.groups)
 
         # get the plot data
         x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr)
