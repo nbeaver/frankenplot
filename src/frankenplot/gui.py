@@ -319,15 +319,16 @@ class PlotControlPanel(wx.Panel):
         self.parent = parent
         self.app = app
 
-        self.channels = self.parent.plot_panel.channels
-        self.channel_nums = self.channels.keys()
+        self.channels = app.channels
+        self.channel_state = dict((chan, True) for chan in self.channels)
 
         self.main_sizer = main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         sizer = wx.GridBagSizer()
 
         # ROI selector
-        rois = [str(i) for i in sorted(self.parent.plot_panel.rois.keys())]
+        # FIXME: allow switch between corrected/uncorrected ROIs
+        rois = [str(i) for i in sorted(app.corr_rois.keys())]
         self.roi_selector = wx.ComboBox(parent=self, choices=rois)
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
         sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
@@ -384,7 +385,7 @@ class PlotControlPanel(wx.Panel):
 
         # channel selector
         self.chan_sel = wx.ComboBox(parent=self,
-                                    choices=[str(c) for c in self.channel_nums])
+                                    choices=[str(c) for c in self.channels])
 
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectChan, self.chan_sel)
         cm_sizer.Add(self.chan_sel)
@@ -431,7 +432,7 @@ class PlotControlPanel(wx.Panel):
         self._set_channel(int(self.chan_sel.GetValue()))
 
     def OnEnableChan(self, e):
-        self.channels[self.cur_channel] = self.enable_chan_cb.GetValue()
+        self.channel_state[self.cur_channel] = self.enable_chan_cb.GetValue()
 
     def _set_channel(self, channel):
         if not self.in_channel_mode():
@@ -439,7 +440,7 @@ class PlotControlPanel(wx.Panel):
             raise Exception("Changing channels is not allowed when not in Channel mode")
 
         # set channel enabled checkbox to appropriate state
-        self.enable_chan_cb.SetValue(self.channels[channel])
+        self.enable_chan_cb.SetValue(self.channel_state[channel])
 
         # store new channel in internal state
         self.cur_channel = channel
@@ -448,11 +449,11 @@ class PlotControlPanel(wx.Panel):
         self.chan_sel.SetValue(str(channel))
 
         # disable prev/next buttons when at first/last channel
-        if self.cur_channel == self.channel_nums[0]:
+        if self.cur_channel == self.channels[0]:
             self.chan_prev_btn.Disable()
         else:
             self.chan_prev_btn.Enable()
-        if self.cur_channel == self.channel_nums[-1]:
+        if self.cur_channel == self.channels[-1]:
             self.chan_next_btn.Disable()
         else:
             self.chan_next_btn.Enable()
@@ -473,7 +474,7 @@ class PlotControlPanel(wx.Panel):
         try:
             self._set_channel(self.cur_channel)
         except AttributeError:
-            self._set_channel(self.channel_nums[0])
+            self._set_channel(self.channels[0])
 
         # update plot to show only the active channel
         self.parent.plot_panel.plot_channel(self.cur_channel)
@@ -513,10 +514,8 @@ class PlotPanel(wxmpl.PlotPanel):
         self.parent = parent
         self.data = data
 
-        # self.rois is a dict(roi) => [columns]
-        # self.channels is a dict(channel) => bool (enabled/disabled)
-        self.rois, self.channels = self._parse_columns(self.data.getColumnNames())
-
+        # dict for storing the parameters of the current plot so that it's
+        # easy to change the plot later (see change_plot())
         self.plot_opts = dict()
 
         # colorbar instance variables
@@ -703,6 +702,10 @@ class MainWindow(wx.Frame):
         # initialise subpanels
         self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data, app=app)
         self.plot_cp = PlotControlPanel(parent=self, id=wx.ID_ANY, app=app)
+
+        # add subpanels to App namespace
+        self.app.plot_panel = self.plot_panel
+        self.app.plot_cp = self.plot_cp
 
         # misc initialisation
         self._initialise_printer()
@@ -912,15 +915,42 @@ class PlotApp(wx.App):
             self.hdr = None
             self.data = None
 
+        # self.rois is a dict: 'roi' => list (of columns)
+        # self.channels is a list of channels
+        self.rois, self.corr_rois, self.channels = self._parse_columns(self.data.getColumnNames())
+
         wx.App.__init__(self, **kwargs)
 
     def OnInit(self):
         self.main_window = MainWindow(parent=None,
                                       id=wx.ID_ANY,
                                       title="frankenplot",
-                                      data=self.data)
+                                      data=self.data,
+                                      app=self)
         self.main_window.Show(True)
         return True
 
     def plot(self, *args, **kwargs):
-        return self.main_window.plot(*args, **kwargs)
+        return self.main_window.plot_panel.plot(*args, **kwargs)
+
+    def _parse_columns(self, columns):
+        channels = dict()
+        rois = dict()
+        corr_rois = dict()
+
+        for col in columns:
+            try:
+                roi, channel, corrected = util.parse_data_column_name(col)
+            except exc.InvalidDataColumnNameException:
+                continue
+
+            channels[channel] = True
+
+            # associate the column with its ROI
+            if corrected:
+                d = corr_rois
+            else:
+                d = rois
+            d.setdefault(roi, []).append(col)
+
+        return rois, corr_rois, channels.keys()
