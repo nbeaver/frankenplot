@@ -54,3 +54,13 @@ def parse_data_column_name(col):
         raise exceptions.InvalidDataColumnNameException(s)
 
     return int(roi), int(channel), bool(corrected)
+
+ROI_GROUP_RE = re.compile(r"(corr_)?roi_(\d+)")
+def parse_roi_group_name(name):
+    match = ROI_GROUP_RE.search(name)
+    try:
+        corrected, roi = match.groups()
+    except AttributeError:
+        raise ValueError("invalid ROI group name: '%s'" % name)
+
+    return int(roi), bool(corrected)
