@@ -6,7 +6,7 @@ import optparse
 import sys
 
 import frankenplot
-from frankenplot import gui, util
+from frankenplot import defaults, gui, util
 
 # ============================================================================
 
@@ -28,16 +28,16 @@ def parse_arguments(args):
         help=optparse.SUPPRESS_HELP, metavar='N')
 
     parser.add_option('-x',
-        action='store', type='string', dest='xName', default='sam_hor',
-        help='x-axis column name ("sam_hor" is default)', metavar='N')
+        action='store', type='string', dest='xName', default=defaults.x_name,
+        help='x-axis column name ("%s" is default)' % defaults.x_name, metavar='N')
 
     parser.add_option('-y',
-        action='store', type='string', dest='yName', default='sam_vert',
-        help='y-axis column name ("sam_vert" is default)', metavar='N')
+        action='store', type='string', dest='yName', default=defaults.y_name,
+        help='y-axis column name ("%s" is default)' % defaults.y_name, metavar='N')
 
     parser.add_option('-z',
-        action='store', type='string', dest='zName', default='Io',
-        help='z-axis column name ("Io" is default)', metavar='N')
+        action='store', type='string', dest='zName', default=defaults.z_name,
+        help='z-axis column name ("%s" is default)' % defaults.z_name, metavar='N')
 
     # FIXME move to Edit -> Preferences
     parser.add_option('-n',
@@ -45,7 +45,7 @@ def parse_arguments(args):
         help='disable Io normalization')
 
     parser.add_option('-m',
-        action='store', dest='colormap', default='hot',
+        action='store', dest='colormap', default=defaults.colormap,
         help=('color map (%s)' % ', '.join(colormaps)), metavar='C')
 
     opts, args = parser.parse_args(args)
