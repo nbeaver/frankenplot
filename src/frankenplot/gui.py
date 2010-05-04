@@ -523,37 +523,12 @@ class PlotPanel(wxmpl.PlotPanel):
         self.cb = None
 
     # FIXME: move these default values somewhere else
-    def plot(self, x_name, y_name, z_name, normalize=True, colormap="hot",
-             roi_number=0, columns=None, title=""):
-        # fetch x
-        try:
-            x_col = self.data.getColumn(x_name)
-        except xdp.ColumnNameError:
-            util.fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
+    def plot(self, x_name, y_name, z_expr, colormap="hot", title=""):
+        # replace groups in the expression with their constituent columns
+        z_expr = fdata.expand_groups(z_expr, self.app.groups)
 
-        # fetch y
-        try:
-            y_col = self.data.getColumn(y_name)
-        except xdp.ColumnNameError:
-            util.fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
-
-        # determine which columns to plot
-        if not columns:
-            columns = []
-            for col in self.rois[roi_number]:
-                roi, channel = util.parse_data_column_name(col)
-                if self.channels[channel]:
-                    columns.append(col)
-
-        # calculate z
-        zExpr = '+'.join(['$'+x for x in columns])
-        if normalize:
-            if self.data.hasColumn(z_name):
-                zExpr = '(%s)/$%s' % (zExpr, z_name)
-            else:
-                util.fatal_error('invalid z-axis column name "%s"', repr(z_name)[1:-1])
-        z_col = self.data.evaluate(zExpr)
-        x, y, z = fdata.makeXYZ(x_col, y_col, z_col)
+        # get the plot data
+        x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr)
 
         # set up axes
         fig = self.get_figure()
@@ -597,16 +572,9 @@ class PlotPanel(wxmpl.PlotPanel):
         # save current plot parameters for later retrieval
         self.plot_opts["x_name"] = x_name
         self.plot_opts["y_name"] = y_name
-        self.plot_opts["z_name"] = z_name
-        self.plot_opts["normalize"] = normalize
+        self.plot_opts["z_expr"] = z_expr
         self.plot_opts["colormap"] = colormap
-        self.plot_opts["roi_number"] = roi_number
-        self.plot_opts["columns"] = columns
         self.plot_opts["title"] = title
-
-        # update plot cp elements
-        # FIXME: this should be subsumed into the new defaults location
-        self.parent.plot_cp.roi_selector.SetValue(str(roi_number))
 
     def plot_channel(self, channel, roi=None):
         """Plot an individual channel.

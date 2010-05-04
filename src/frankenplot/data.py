@@ -6,6 +6,10 @@ import re
 
 import matplotlib.numerix as nx
 
+import xdp
+
+from frankenplot import util
+
 # ============================================================================
 
 # groups are signified by a percent sign (e.g., '%roi1')
@@ -98,3 +102,21 @@ def expand_groups(expression, groups):
         return "(%s)" % "+".join(["$" + col for col in groups[group]])
 
     return GROUP_RE.sub(group_repl, expression)
+
+def get_plot_data(data, x_name, y_name, z_expr):
+    # fetch x
+    try:
+        x_col = data.getColumn(x_name)
+    except xdp.ColumnNameError:
+        util.fatal_error('invalid x-axis column name "%s"', repr(x_name)[1:-1])
+
+    # fetch y
+    try:
+        y_col = data.getColumn(y_name)
+    except xdp.ColumnNameError:
+        util.fatal_error('invalid y-axis column name "%s"', repr(x_name)[1:-1])
+
+    # evaluate the specified expression to get z
+    z_col = data.evaluate(z_expr)
+
+    return makeXYZ(x_col, y_col, z_col)
