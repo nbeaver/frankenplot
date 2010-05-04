@@ -10,6 +10,10 @@ from frankenplot import gui, util
 
 # ============================================================================
 
+def legacy_i_callback(option, opt_str, value, parser):
+    print >>sys.stderr, "DEPRECATION WARNING: the '-i' option is deprecated; please use '-z'"
+    parser.values.zName = value
+
 def parse_arguments(args):
     # matplotlib's color maps
     colormaps = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot',
@@ -20,8 +24,8 @@ def parse_arguments(args):
     parser = optparse.OptionParser(usage=USAGE, version=VERSION)
 
     parser.add_option('-i',
-        action='store', type='string', dest='zName',
-        help='z-axis column name (legacy option; see -z for more details)', metavar='N')
+        action='callback', type='string', callback=legacy_i_callback,
+        help=optparse.SUPPRESS_HELP, metavar='N')
 
     parser.add_option('-x',
         action='store', type='string', dest='xName', default='sam_hor',
