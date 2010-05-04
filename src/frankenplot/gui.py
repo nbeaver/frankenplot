@@ -515,9 +515,6 @@ class PlotControlPanel(wx.Panel):
         except AttributeError:
             self._set_channel(self.channels[0])
 
-        # update plot to show only the active channel
-        self._plot_channel()
-
     def OnSumMode(self, e): self._set_sum_mode()
     def _set_sum_mode(self):
         self.mode = self.SUM_MODE
