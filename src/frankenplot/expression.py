@@ -48,12 +48,7 @@ class ROIExpression(FluorExpression):
         FluorExpression.__init__(self, *args, **kwargs)
 
     def group_name(self):
-        if self.corrected:
-            stem = "corr_roi"
-        else:
-            stem = "roi"
-
-        return "%%%s_%d" % (stem, self.roi)
+        return util.get_roi_group_name(self.roi, self.corrected)
 
     def __str__(self):
         self.expr = self.group_name()

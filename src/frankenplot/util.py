@@ -35,6 +35,14 @@ def get_data_column_name(roi, channel, corrected):
 
     return "%s%d_%d" % (stem, channel, roi)
 
+def get_roi_group_name(roi, corrected):
+    if corrected:
+        stem = "corr_roi"
+    else:
+        stem = "roi"
+
+    return "%%%s_%d" % (stem, roi)
+
 roi_re = re.compile(r"(corr_)?roi(\d+)_(\d+)")
 def parse_data_column_name(col):
     match = roi_re.search(col)
