@@ -6,7 +6,7 @@ import optparse
 import sys
 
 import frankenplot
-from frankenplot import defaults, gui, util
+from frankenplot import defaults, expression, gui, util
 
 # ============================================================================
 
@@ -78,7 +78,13 @@ def run(arguments):
     filename, roi_number = args
 
     app = gui.PlotApp(filename=filename)
-    app.plot_roi(roi_number, z_name=opts.zName, x_name=opts.xName,
-                 y_name=opts.yName, normalize=opts.normalize,
-                 colormap=opts.colormap)
+
+    # update plot defaults based on arguments
+    defaults.x_name = opts.xName
+    defaults.y_name = opts.yName
+    defaults.z_name = opts.zName
+    defaults.fluor_mode.normalize = opts.normalize
+
+    z_expr = expression.ROIExpression(roi_number)
+    app.plot(z_expr)
     app.MainLoop()

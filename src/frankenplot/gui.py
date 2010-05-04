@@ -18,10 +18,12 @@ import wxmpl
 import xdp
 
 from frankenplot import (data as fdata,
+                         defaults,
                          exceptions as exc,
                          expression,
                          util,
                          __version__)
+from expression import ChannelExpression, ROIExpression
 
 # ============================================================================
 
@@ -422,13 +424,24 @@ class PlotControlPanel(wx.Panel):
 
         self.main_sizer.Add(sizer, flag=wx.EXPAND)
 
+    def _plot_roi(self):
+        roi = int(self.roi_selector.GetValue())
+        expr = ROIExpression(roi)
+        self.app.plot(expr)
+
+    def _plot_channel(self):
+        roi = int(self.roi_selector.GetValue())
+        channel = int(self.chan_sel.GetValue())
+        expr = ChannelExpression(roi=roi, channel=channel)
+        self.app.plot(expr)
+
     def OnSelectROI(self, e):
         roi = int(self.roi_selector.GetValue())
 
         if self.in_sum_mode():
-            self.app.plot_panel.change_roi_plot(roi_number=roi)
+            self._plot_roi()
         elif self.in_channel_mode():
-            self.app.plot_panel.plot_channel(channel=self.cur_channel, roi=roi)
+            self._plot_channel()
 
     def OnNextChan(self, e):
         self._set_channel(self.cur_channel + 1)
@@ -467,7 +480,7 @@ class PlotControlPanel(wx.Panel):
             self.chan_next_btn.Enable()
 
         # update plot to show only the active channel
-        self.parent.plot_panel.plot_channel(self.cur_channel)
+        self._plot_channel()
 
     def OnChanMode(self, e): self._set_chan_mode()
     def _set_chan_mode(self):
@@ -485,7 +498,7 @@ class PlotControlPanel(wx.Panel):
             self._set_channel(self.channels[0])
 
         # update plot to show only the active channel
-        self.parent.plot_panel.plot_channel(self.cur_channel)
+        self._plot_channel()
 
     def OnSumMode(self, e): self._set_sum_mode()
     def _set_sum_mode(self):
@@ -498,7 +511,7 @@ class PlotControlPanel(wx.Panel):
         # update plot to show the active ROI
         roi = self.roi_selector.GetValue()
         if roi:
-            self.app.plot_panel.change_roi_plot(roi_number=int(roi))
+            self._plot_roi()
 
     def in_sum_mode(self):
         return self.mode == self.SUM_MODE
@@ -510,7 +523,9 @@ class PlotControlPanel(wx.Panel):
         """Handle toggling of 'Normalize data' checkbox
 
         """
-        self.parent.plot_panel.change_plot(normalize=self.norm_cb.GetValue())
+        expr = self.app.plot_panel.plot_opts["z_expr"]
+        expr.normalize = self.norm_cb.GetValue()
+        self.app.plot(expr)
 
 # ============================================================================
 
@@ -531,13 +546,20 @@ class PlotPanel(wxmpl.PlotPanel):
         self.img = None
         self.cb = None
 
-    # FIXME: move these default values somewhere else
-    def plot(self, x_name, y_name, z_expr, colormap="hot", title=""):
+    def plot(self, z_expr, **kwargs):
+        x_name = kwargs.pop("x_name", defaults.x_name)
+        y_name = kwargs.pop("y_name", defaults.y_name)
+        title = kwargs.pop("title", defaults.title)
+        colormap = kwargs.pop("colormap", defaults.colormap)
+
+        # get string form of expression
+        z_expr_s = str(z_expr)
+
         # replace groups in the expression with their constituent columns
-        z_expr = expression.expand_groups(z_expr, self.app.groups)
+        z_expr_s = expression.expand_groups(z_expr_s, self.app.groups)
 
         # get the plot data
-        x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr)
+        x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr_s)
 
         # set up axes
         fig = self.get_figure()
@@ -578,58 +600,15 @@ class PlotPanel(wxmpl.PlotPanel):
         # force a redraw of the figure
         axes.figure.canvas.draw()
 
+        # call on_plot callback
+        z_expr.on_plot(fig, self.app)
+
         # save current plot parameters for later retrieval
         self.plot_opts["x_name"] = x_name
         self.plot_opts["y_name"] = y_name
         self.plot_opts["z_expr"] = z_expr
         self.plot_opts["colormap"] = colormap
         self.plot_opts["title"] = title
-
-    def plot_channel(self, channel, roi=None, corrected=True, normalize=None):
-        """Plot an individual channel.
-
-        """
-
-        if roi is None:
-            roi = self.roi_plot_opts["roi_number"]
-
-        if normalize is None:
-            normalize = self.roi_plot_opts["normalize"]
-
-        z_expr = "$%s" % util.get_data_column_name(roi, channel, corrected)
-
-        if normalize:
-            expression.normalize(z_expr, self.roi_plot_opts["z_name"])
-
-        self.change_plot(z_expr=z_expr)
-
-    def plot_roi(self, roi_number, corrected=True, z_name=None, normalize=True,
-                 **kwargs):
-        if corrected:
-            group_name = "corr_roi"
-        else:
-            group_name = "roi"
-
-        z_expr = "%%%s_%s" % (group_name, roi_number)
-
-        if normalize:
-            if not z_name:
-                raise ValueError(
-                    "'z_name' must be specified when 'normalize' is True'")
-
-            z_expr = "(%s)/$%s" % (z_expr, z_name)
-
-        # update state
-        self.roi_plot_opts["roi_number"] = roi_number
-        self.roi_plot_opts["corrected"] = corrected
-        self.roi_plot_opts["normalize"] = normalize
-        self.roi_plot_opts["z_name"] = z_name
-        self.app.plot_cp.roi_selector.SetValue(str(roi_number))
-
-        # ignore "z_expr" if it's set
-        kwargs.pop("z_expr", None)
-
-        return self.plot(z_expr=z_expr, **kwargs)
 
     def change_plot(self, **kwargs):
         """Update the current plot with the given parameters.
@@ -955,9 +934,6 @@ class PlotApp(wx.App):
 
     def plot(self, *args, **kwargs):
         return self.main_window.plot_panel.plot(*args, **kwargs)
-
-    def plot_roi(self, *args, **kwargs):
-        return self.main_window.plot_panel.plot_roi(*args, **kwargs)
 
     def _parse_columns(self, columns):
         channels = dict()
