@@ -98,7 +98,7 @@ class ArbitraryExpression(Expression):
         self.expr = expr
 
     def __str__(self):
-        return expr
+        return self.expr
 
 # ============================================================================
 
