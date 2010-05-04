@@ -916,10 +916,15 @@ class PlotApp(wx.App):
         # self.channels is a list of channels
         self.rois, self.corr_rois, self.channels = self._parse_columns(self.data.getColumnNames())
 
-        # initialise groups
+        # initialise groups (dict: group name (str) => members (set))
         self.groups = {}
-        self._create_roi_groups(self.rois, "roi")
-        self._create_roi_groups(self.corr_rois, "corr_roi")
+
+        # ROI group names (%roi_1, ... , %roi_N, %corr_roi_1, ... , %corr_roi_N)
+        self.roi_group_names = []
+
+        # create the ROI groups
+        self._create_roi_groups(self.rois, corrected=False)
+        self._create_roi_groups(self.corr_rois, corrected=True)
 
         wx.App.__init__(self, **kwargs)
 
@@ -957,11 +962,12 @@ class PlotApp(wx.App):
 
         return rois, corr_rois, channels.keys()
 
-    def _create_roi_groups(self, rois, name_stem):
+    def _create_roi_groups(self, rois, corrected):
         for roi, cols in rois.iteritems():
-            group_name = "%%%s_%s" % (name_stem, roi)
-            members = cols
+            group_name = util.get_roi_group_name(roi, corrected)
+            members = set(cols)
             self.add_group(group_name, members)
+            self.roi_group_names.append(group_name)
 
     def add_group(self, group_name, members, overwrite=False):
         group = {group_name: members}
