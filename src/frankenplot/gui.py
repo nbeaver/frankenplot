@@ -322,22 +322,37 @@ class PlotControlPanel(wx.Panel):
         self.channels = app.channels
         self.channel_state = dict((chan, True) for chan in self.channels)
 
+        # initialise and lay out GUI elements
+        self._init_gui_elements()
+
+        # set default state
+        self._set_sum_mode()
+        # FIXME: get the proper default value
+        self.norm_cb.SetValue(True)
+
+    def _init_gui_elements(self):
         self.main_sizer = main_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        self._init_roi_selector()
+        self._init_chan_mode_ctrls()
+        self._init_plot_options()
+
+        self.SetSizer(main_sizer)
+        self.Fit()
+
+    def _init_roi_selector(self):
         sizer = wx.GridBagSizer()
 
         # ROI selector
         # FIXME: allow switch between corrected/uncorrected ROIs
-        rois = [str(i) for i in sorted(app.corr_rois.keys())]
+        rois = [str(i) for i in sorted(self.app.corr_rois.keys())]
         self.roi_selector = wx.ComboBox(parent=self, choices=rois)
         self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
         sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
                 flag=wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.roi_selector, pos=(0,1))
 
-        main_sizer.Add(sizer, flag=wx.EXPAND)
-
-        # draw mode selector
+        # mode selector
         mode_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.sum_rb = wx.RadioButton(parent=self, id=wx.ID_ANY, label="Sum",
                 style=wx.RB_GROUP)
@@ -353,31 +368,7 @@ class PlotControlPanel(wx.Panel):
                 flag=wx.ALIGN_TOP)
         sizer.Add(mode_sizer, pos=(1,1))
 
-        # draw channel mode controls
-        self._init_chan_mode_ctrls()
-
-        # draw plot options
-        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
-        sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
-        self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
-        # FIXME: get the proper default value
-        self.corr_cb.SetValue(True)
-        self.corr_cb.Disable()
-        self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
-        self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
-
-        sizer.Add(self.corr_cb)
-        sizer.Add(self.norm_cb)
-        main_sizer.Add(sizer, flag=wx.EXPAND)
-
-        # size
-        self.SetSizer(main_sizer)
-        self.Fit()
-
-        # set default state
-        self._set_sum_mode()
-        # FIXME: get the proper default value
-        self.norm_cb.SetValue(True)
+        self.main_sizer.Add(sizer, flag=wx.EXPAND)
 
     def _init_chan_mode_ctrls(self):
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Channel Select")
@@ -409,10 +400,23 @@ class PlotControlPanel(wx.Panel):
         # add to main sizer
         self.main_sizer.Add(cm_sizer)
 
-        self.cm_sizer = cm_sizer
-
         self.cm_items = (self.chan_prev_btn, self.chan_sel,
                          self.chan_next_btn, self.enable_chan_cb)
+
+    def _init_plot_options(self):
+        box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
+        sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
+        self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
+        # FIXME: get the proper default value
+        self.corr_cb.SetValue(True)
+        self.corr_cb.Disable()
+        self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
+        self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
+
+        sizer.Add(self.corr_cb)
+        sizer.Add(self.norm_cb)
+
+        self.main_sizer.Add(sizer, flag=wx.EXPAND)
 
     def OnSelectROI(self, e):
         roi = int(self.roi_selector.GetValue())
