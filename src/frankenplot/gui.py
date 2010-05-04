@@ -313,9 +313,11 @@ class PlotControlPanel(wx.Panel):
     SUM_MODE = 1
     CHANNEL_MODE = 2
 
-    def __init__(self, parent, id, **kwargs):
+    def __init__(self, parent, id, app, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
+
         self.parent = parent
+        self.app = app
 
         self.channels = self.parent.plot_panel.channels
         self.channel_nums = self.channels.keys()
@@ -504,10 +506,11 @@ class PlotControlPanel(wx.Panel):
 # ============================================================================
 
 class PlotPanel(wxmpl.PlotPanel):
-    def __init__(self, parent, id, data, *args, **kwargs):
+    def __init__(self, parent, id, data, app, *args, **kwargs):
         wxmpl.PlotPanel.__init__(self, parent, id, *args, **kwargs)
-        self.parent = parent
 
+        self.app = app
+        self.parent = parent
         self.data = data
 
         # self.rois is a dict(roi) => [columns]
@@ -691,12 +694,15 @@ class MainWindow(wx.Frame):
         + 'Written by Ken McIvor <mcivor@iit.edu>\n'
         + 'Copyright (c) 2006--2010, Illinois Institute of Technology')
 
-    def __init__(self, parent, id, title, data, **kwargs):
+    def __init__(self, parent, id, title, data, app, **kwargs):
         wx.Frame.__init__(self, parent, id, title, **kwargs)
 
+        # retain reference to App
+        self.app = app
+
         # initialise subpanels
-        self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data)
-        self.plot_cp = PlotControlPanel(parent=self, id=wx.ID_ANY)
+        self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data, app=app)
+        self.plot_cp = PlotControlPanel(parent=self, id=wx.ID_ANY, app=app)
 
         # misc initialisation
         self._initialise_printer()
