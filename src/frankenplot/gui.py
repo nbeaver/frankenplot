@@ -453,7 +453,25 @@ class PlotControlPanel(wx.Panel):
         self._set_channel(int(self.chan_sel.GetValue()))
 
     def OnEnableChan(self, e):
-        self.channel_state[self.cur_channel] = self.enable_chan_cb.GetValue()
+        """Enable/disable a channel by updating group memberships
+
+        """
+        channel = int(self.chan_sel.GetValue())
+        state = self.enable_chan_cb.GetValue()
+        self.channel_state[channel] = state
+
+        # update the membership of every ROI group
+        # (%roi_1, ... , %roi_N, %corr_roi_1, ... , %corr_roi_N)
+        for group_name in self.app.roi_group_names:
+            roi, corrected = util.parse_roi_group_name(group_name)
+            group = self.app.groups[group_name]
+
+            col = util.get_data_column_name(roi, channel, corrected)
+
+            if state:
+                group.add(col)
+            else:
+                group.discard(col)
 
     def _set_channel(self, channel):
         if not self.in_channel_mode():
