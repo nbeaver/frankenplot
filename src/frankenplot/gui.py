@@ -436,50 +436,55 @@ class PlotControlPanel(wx.Panel):
             # FIXME: use a better exception
             raise Exception("Changing channels is not allowed when not in Channel mode")
 
-        # update state
+        # set channel enabled checkbox to appropriate state
         self.enable_chan_cb.SetValue(self.channels[channel])
+
+        # store new channel in internal state
         self.cur_channel = channel
+
+        # update the channel selector dropdown
         self.chan_sel.SetValue(str(channel))
 
-        # update prev/next buttons' enabled/disabled status
+        # disable prev/next buttons when at first/last channel
         if self.cur_channel == self.channel_nums[0]:
             self.chan_prev_btn.Disable()
         else:
             self.chan_prev_btn.Enable()
-
         if self.cur_channel == self.channel_nums[-1]:
             self.chan_next_btn.Disable()
         else:
             self.chan_next_btn.Enable()
 
-        # update plot
+        # update plot to show only the active channel
         self.parent.plot_panel.plot_channel(self.cur_channel)
 
     def OnChanMode(self, e): self._set_chan_mode()
     def _set_chan_mode(self):
         self.mode = self.CHANNEL_MODE
 
+        # enable elements in the "Channel Select" box
         for item in self.cm_items:
             item.Enable()
 
-        # initialise channel selector
+        # initialise channel selector to previous state; if there is no
+        # previous state, start at the first channel
         try:
             self._set_channel(self.cur_channel)
         except AttributeError:
             self._set_channel(self.channel_nums[0])
 
-        # update plot
+        # update plot to show only the active channel
         self.parent.plot_panel.plot_channel(self.cur_channel)
-
 
     def OnSumMode(self, e): self._set_sum_mode()
     def _set_sum_mode(self):
         self.mode = self.SUM_MODE
 
+        # disable elements in the "Channel Select" box
         for item in self.cm_items:
             item.Disable()
 
-        # update plot
+        # update plot to show the active ROI
         roi = self.roi_selector.GetValue()
         if roi:
             self.parent.plot_panel.change_plot(roi_number=int(roi), columns=False)
@@ -491,6 +496,9 @@ class PlotControlPanel(wx.Panel):
         return self.mode == self.CHANNEL_MODE
 
     def OnNormalize(self, e):
+        """Handle toggling of 'Normalize data' checkbox
+
+        """
         self.parent.plot_panel.change_plot(normalize=self.norm_cb.GetValue())
 
 # ============================================================================
@@ -562,19 +570,19 @@ class PlotPanel(wxmpl.PlotPanel):
         # plot the data and colorbar
         extent = min(x), max(x), min(y), max(y)
 
-        # if we're replotting the image, update the colormap
+        # if we're replotting the image, update the colorbar
         if self.img:
-            # we need to update both the image's data and the colormap's data
+            # we need to update both the image's data and the colorbar's data
             self.img.set_data(z)
             self.cb.set_array(z)
 
-            # recalculate limits
+            # recalculate limits of the colorbar
             self.cb.autoscale()
 
-            # update image
+            # redraw the image
             self.img.changed()
 
-        # otherwise, create a new colormap
+        # otherwise, create a new colorbar
         else:
             self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
                         origin='lower', aspect='equal', interpolation='nearest',
@@ -595,9 +603,14 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts["title"] = title
 
         # update plot cp elements
+        # FIXME: this should be subsumed into the new defaults location
         self.parent.plot_cp.roi_selector.SetValue(str(roi_number))
 
     def plot_channel(self, channel, roi=None):
+        """Plot an individual channel.
+
+        """
+
         if roi is None:
             roi = self.plot_opts["roi_number"]
 
@@ -605,6 +618,12 @@ class PlotPanel(wxmpl.PlotPanel):
         self.change_plot(columns=[col], roi_number=roi)
 
     def change_plot(self, **kwargs):
+        """Update the current plot with the given parameters.
+
+        Any parameters not specified in kwargs are left unchanged.
+
+        """
+
         opts = copy.copy(self.plot_opts)
         opts.update(kwargs)
         self.plot(**opts)
