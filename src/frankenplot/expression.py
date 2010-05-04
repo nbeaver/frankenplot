@@ -10,12 +10,21 @@ from frankenplot import defaults, util
 
 class Expression(object):
     def __str__(self):
+        """Produces an expression parsable by xdp.Data.evaluate()
+
+        """
         raise NotImplementedError
 
     def on_plot(self, figure, app):
+        """Callback to be run after the expression is plotted
+
+        """
         pass
 
 class FluorExpression(Expression):
+    """Fluorescence Mode expression
+
+    """
     def __init__(self, corrected=None, normalize=None, z_name=None):
         if corrected is None:
             self.corrected = defaults.fluor_mode.corrected
@@ -42,9 +51,13 @@ class FluorExpression(Expression):
         return "(%s)/$%s" % (expression, z_name)
 
     def on_plot(self, figure, app):
+        # update the ROI selector with the currently plotted ROI
         app.plot_cp.roi_selector.SetValue(str(self.roi))
 
 class ROIExpression(FluorExpression):
+    """Expression representing a single ROI
+
+    """
     def __init__(self, roi, *args, **kwargs):
         self.roi = roi
 
@@ -58,6 +71,9 @@ class ROIExpression(FluorExpression):
         return FluorExpression.__str__(self)
 
 class ChannelExpression(FluorExpression):
+    """Expression representing a single channel in an ROI
+
+    """
     def __init__(self, roi, channel, *args, **kwargs):
         self.roi = roi
         self.channel = channel
