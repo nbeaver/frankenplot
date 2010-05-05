@@ -23,7 +23,7 @@ from frankenplot import (data as fdata,
                          expression,
                          util,
                          __version__)
-from expression import ArbitraryExpression, ChannelExpression, ROIExpression
+from expression import ArbitraryExpression, ChannelExpression, RefExpression, ROIExpression, SampleExpression
 
 # ============================================================================
 
@@ -588,8 +588,98 @@ class TransControlsPanel(PlotControlPanel):
     """Controls for Transmission Mode
 
     """
+
+    SAMPLE_MODE = 1
+    REF_MODE = 2
+    CUSTOM_MODE = 3
+
     def __init__(self, parent, id, app, **kwargs):
         PlotControlPanel.__init__(self, parent, id, app, **kwargs)
+
+        self.id = id
+
+        self._init_gui_elements()
+
+        # start in sample mode by default
+        self.mode = self.SAMPLE_MODE
+
+    def _init_gui_elements(self):
+        panel = wx.Panel(parent=self, id=wx.ID_ANY)
+
+        grid = wx.FlexGridSizer(rows=3, cols=1)
+
+        # sample transmission
+        self.samp_rb = wx.RadioButton(panel, wx.ID_ANY, "Sample transmission",
+                style=wx.RB_GROUP)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnSampMode, self.samp_rb)
+        grid.Add(self.samp_rb)
+
+        # reference transmission
+        self.ref_rb = wx.RadioButton(panel, wx.ID_ANY, "Reference transmission")
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnRefMode, self.ref_rb)
+        grid.Add(self.ref_rb)
+
+        # custom
+        self.custom_rb = wx.RadioButton(panel, wx.ID_ANY, "Custom")
+        self.custom_rb.Disable()
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomMode, self.custom_rb)
+        grid.Add(self.custom_rb)
+
+        panel.SetSizer(grid)
+        grid.Fit(panel)
+        self.panel = panel
+
+    def in_sample_mode(self):
+        return self.mode == self.SAMPLE_MODE
+
+    def in_ref_mode(self):
+        return self.mode == self.REF_MODE
+
+    def in_custom_mode(self):
+        return self.mode == self.CUSTOM_MODE
+
+    def _plot_sample(self):
+        expr = SampleExpression()
+        self.app.plot(expr)
+
+    def _plot_ref(self):
+        expr = RefExpression()
+        self.app.plot(expr)
+
+    def _plot_custom(self):
+        pass
+
+    def OnSampMode(self, e):
+        self.mode = self.SAMPLE_MODE
+        try:
+            self._plot_sample()
+        except xdp.errors.ColumnNameError:
+            # FIXME: do something better? move back to previous selection?
+            pass
+
+    def OnRefMode(self, e):
+        self.mode = self.REF_MODE
+        try:
+            self._plot_ref()
+        except xdp.errors.ColumnNameError:
+            # FIXME: do something better? move back to previous selection?
+            pass
+
+    def OnCustomMode(self, e):
+        self.mode = self.CUSTOM_MODE
+        self._plot_custom()
+
+    def OnPageSelected(self, e):
+        if self.in_sample_mode():
+            self._plot_sample()
+        elif self.in_ref_mode():
+            self._plot_ref()
+        elif self.in_custom_mode():
+            self._plot_custom()
+        else:
+            # FIXME use better exception
+            raise Exception("unknown mode")
+
 
 # ============================================================================
 
