@@ -634,12 +634,13 @@ class PlotControlsCB(wx.Choicebook):
         old_panel.OnPageDeselected(e)
 
     def OnPageChanged(self, e):
-        # handle callbacks
         new_panel = self.GetCurrentPage()
-        new_panel.OnPageSelected(e)
 
         # update app.plot_cp pointer
         self.app.plot_cp = new_panel
+
+        # handle callbacks
+        new_panel.OnPageSelected(e)
 
 # ============================================================================
 
