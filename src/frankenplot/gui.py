@@ -874,40 +874,6 @@ class PlotPanel(wxmpl.PlotPanel):
 
 # ============================================================================
 
-class EditPlotTitleDialog(wx.Dialog):
-    def __init__(self, parent, id, title="Edit Plot Title", **kwargs):
-        wx.Dialog.__init__(self, parent, id, title, size=(300,75), **kwargs)
-        self.parent = parent
-
-        main_sizer = wx.GridBagSizer()
-
-        main_sizer.Add(wx.StaticText(parent=self, label="Plot title: "),
-                flag=wx.ALIGN_CENTER_VERTICAL, pos=(0,0))
-
-        self.title_txt = wx.TextCtrl(parent=self, style=wx.TE_PROCESS_ENTER)
-        self.title_txt.SetValue(self.parent.plot_panel.plot_opts["title"])
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnOK, self.title_txt)
-        self.title_txt.SetMinSize((200, -1))
-        main_sizer.Add(self.title_txt, pos=(0,1))
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ok_btn = wx.Button(self, label="OK", id=wx.ID_OK)
-        self.Bind(wx.EVT_BUTTON, self.OnOK, ok_btn)
-        cancel_btn = wx.Button(self, label="Cancel", id=wx.ID_CANCEL)
-
-        sizer.Add(ok_btn)
-        sizer.Add(cancel_btn)
-        main_sizer.Add(sizer, pos=(1,1))
-
-        self.SetSizer(main_sizer)
-
-    def OnCancel(self, e):
-        self.Close()
-
-    def OnOK(self, e):
-        self.parent.plot_panel.change_plot(title=self.title_txt.GetValue())
-        self.Close()
-
 class EditChannelsDialog(wx.Dialog):
     # FIXME: implement
     pass
@@ -1156,8 +1122,15 @@ class MainWindow(wx.Frame):
         dlg.Destroy()
 
     def OnMenuEditPlotTitle(self, e):
-        dlg = EditPlotTitleDialog(parent=self, id=wx.ID_ANY)
-        dlg.ShowModal()
+        message = "Plot Title:"
+        title = "Edit Plot Title"
+        value = self.app.plot_panel.plot_opts["title"]
+
+        dlg = wx.TextEntryDialog(self, message, title, value)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.app.plot_panel.change_plot(title=dlg.GetValue())
+
         dlg.Destroy()
 
     def OnMenuPlotExpr(self, e):
