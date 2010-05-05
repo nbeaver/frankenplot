@@ -105,12 +105,12 @@ class SampleExpression(TransExpression):
 
     def __init__(self, Io=None, It=None):
         if Io is None:
-            self.Io = defaults.samp_mode.Io
+            self.Io = defaults.trans_mode.samp_mode.Io
         else:
             self.Io = Io
 
         if It is None:
-            self.It = defaults.samp_mode.It
+            self.It = defaults.trans_mode.samp_mode.It
         else:
             self.It = It
 
@@ -121,12 +121,12 @@ class RefExpression(TransExpression):
 
     def __init__(self, Io=None, It=None):
         if Io is None:
-            self.Io = defaults.ref_mode.Io
+            self.Io = defaults.trans_mode.ref_mode.Io
         else:
             self.Io = Io
 
         if It is None:
-            self.It = defaults.ref_mode.It
+            self.It = defaults.trans_mode.ref_mode.It
         else:
             self.It = It
 
