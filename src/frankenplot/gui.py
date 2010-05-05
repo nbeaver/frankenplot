@@ -693,8 +693,8 @@ class CMapControlsPanel(PlotControlPanel):
 # ============================================================================
 
 class PlotControlsFrame(wx.Frame):
-    def __init__(self, parent, id, app, **kwargs):
-        wx.Frame.__init__(self, parent, id, title="Plot Controls", **kwargs)
+    def __init__(self, parent, id, app, size=(250,350), **kwargs):
+        wx.Frame.__init__(self, parent, id, title="Plot Controls", size=size, **kwargs)
 
         self.parent = parent
         self.app = app
