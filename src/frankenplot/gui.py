@@ -316,14 +316,36 @@ class SelectColumnsFrame(wx.Frame):
 # ============================================================================
 
 class PlotControlPanel(wx.Panel):
-    SUM_MODE = 1
-    CHANNEL_MODE = 2
-
     def __init__(self, parent, id, app, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
 
         self.parent = parent
         self.app = app
+
+    def OnPageSelected(self, e):
+        """Callback for when the page is selected in a Choicebook
+
+        """
+        pass
+
+    def OnPageDeselected(self, e):
+        """Callback for when the page is deselected in a Choicebook
+
+        """
+        pass
+
+# ============================================================================
+
+class FluorControlsPanel(PlotControlPanel):
+    """Controls for Fluorescence Mode
+
+    """
+
+    SUM_MODE = 1
+    CHANNEL_MODE = 2
+
+    def __init__(self, parent, id, app, **kwargs):
+        PlotControlPanel.__init__(self, parent, id, app, **kwargs)
 
         self.channels = app.channels
         self.channel_state = dict((chan, True) for chan in self.channels)
@@ -542,7 +564,85 @@ class PlotControlPanel(wx.Panel):
         expr.normalize = self.norm_cb.GetValue()
         self.app.plot(expr)
 
+    def OnPageDeselected(self, e):
+        pass
+
+    def OnPageSelected(self, e):
+        pass
+
 # ============================================================================
+
+class TransControlsPanel(PlotControlPanel):
+    """Controls for Transmission Mode
+
+    """
+    def __init__(self, parent, id, app, **kwargs):
+        PlotControlPanel.__init__(self, parent, id, app, **kwargs)
+
+# ============================================================================
+
+class CMapControlsPanel(PlotControlPanel):
+    """Controls for Colormap Mode
+
+    """
+    def __init__(self, parent, id, app, **kwargs):
+        PlotControlPanel.__init__(self, parent, id, app, **kwargs)
+
+# ============================================================================
+
+class PlotControls(wx.Frame):
+    def __init__(self, parent, id, app, **kwargs):
+        wx.Frame.__init__(self, parent, id, title="Plot Controls", **kwargs)
+
+        self.parent = parent
+        self.app = app
+
+        self.cb = PlotControlsCB(parent=self, id=wx.ID_ANY, app=app)
+
+class PlotControlsCB(wx.Choicebook):
+    PAGES = (
+        ("Fluorescence Mode", FluorControlsPanel),
+        ("Transmission Mode", TransControlsPanel),
+        ("Colormap Mode", CMapControlsPanel),
+    )
+
+    def __init__(self, parent, id, app):
+        wx.Choicebook.__init__(self, parent, id)
+
+        self.parent = parent
+        self.app = app
+
+        self._init_pages()
+
+    def _init_pages(self):
+        # initialise pages
+        for name, panel_cls in self.PAGES:
+            panel = panel_cls(parent=self, id=wx.ID_ANY, app=self.app)
+            self.AddPage(panel, name)
+
+        # bind to page changes
+        self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGING, self.OnPageChanging)
+        self.Bind(wx.EVT_CHOICEBOOK_PAGE_CHANGED, self.OnPageChanged)
+
+        # manually call the PAGE_CHANGED callback so any initialisation
+        # routines run
+        self.OnPageChanged(None)
+
+    def OnPageChanging(self, e):
+        # handle callbacks
+        old_panel = self.GetCurrentPage()
+        old_panel.OnPageDeselected(e)
+
+    def OnPageChanged(self, e):
+        # handle callbacks
+        new_panel = self.GetCurrentPage()
+        new_panel.OnPageSelected(e)
+
+        # update app.plot_cp pointer
+        self.app.plot_cp = new_panel
+
+# ============================================================================
+
 
 class PlotPanel(wxmpl.PlotPanel):
     def __init__(self, parent, id, data, app, *args, **kwargs):
@@ -751,11 +851,9 @@ class MainWindow(wx.Frame):
 
         # initialise subpanels
         self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data, app=app)
-        self.plot_cp = PlotControlPanel(parent=self, id=wx.ID_ANY, app=app)
 
         # add subpanels to App namespace
         self.app.plot_panel = self.plot_panel
-        self.app.plot_cp = self.plot_cp
 
         # misc initialisation
         self._initialise_printer()
@@ -764,7 +862,6 @@ class MainWindow(wx.Frame):
         # lay out frame
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.plot_panel, proportion=1)
-        sizer.Add(self.plot_cp)
         self.SetSizer(sizer)
         self.Fit()
 
@@ -1001,6 +1098,10 @@ class PlotApp(wx.App):
                                       data=self.data,
                                       app=self)
         self.main_window.Show(True)
+
+        self.plot_ctrls = PlotControls(parent=None, id=wx.ID_ANY, app=self)
+        self.plot_ctrls.Show(True)
+
         return True
 
     def plot(self, *args, **kwargs):
