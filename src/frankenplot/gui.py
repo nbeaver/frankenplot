@@ -1067,9 +1067,11 @@ class MainWindow(wx.Frame):
         view_menu = wx.Menu()
         menuBar.Append(view_menu, "&View")
 
-        item = view_menu.Append(wx.ID_ANY, "Plot Controls",
-                help="Toggle plot controls", kind=wx.ITEM_CHECK)
-        item.Enable(False)
+        item = view_menu.Append(wx.ID_ANY, "Plot &Controls",
+                help="Toggle Plot Controls window", kind=wx.ITEM_CHECK)
+        item.Check(True)
+        self.Bind(wx.EVT_MENU, self.OnMenuViewPlotControls, item)
+        self.view_plot_ctrls_item = item
 
         # Help menu
         helpMenu = wx.Menu()
@@ -1162,6 +1164,9 @@ class MainWindow(wx.Frame):
         dlg = ArbitraryExpressionDialog(parent=self, app=self.app, id=wx.ID_ANY)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def OnMenuViewPlotControls(self, e):
+        self.app.plot_ctrls.Show(self.view_plot_ctrls_item.IsChecked())
 
     def get_figure(self):
         return self.plot_panel.get_figure()
