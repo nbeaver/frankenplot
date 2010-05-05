@@ -92,6 +92,10 @@ class TransExpression(Expression):
 
     """
 
+    def __init__(self, Io, It):
+        self.Io = Io
+        self.It = It
+
     def __str__(self):
         Io = "$%s" % self.Io
         It = "$%s" % self.It
@@ -105,14 +109,12 @@ class SampleExpression(TransExpression):
 
     def __init__(self, Io=None, It=None):
         if Io is None:
-            self.Io = defaults.trans_mode.samp_mode.Io
-        else:
-            self.Io = Io
+            Io = defaults.trans_mode.samp_mode.Io
 
         if It is None:
-            self.It = defaults.trans_mode.samp_mode.It
-        else:
-            self.It = It
+            It = defaults.trans_mode.samp_mode.It
+
+        TransExpression.__init__(self, Io, It)
 
 class RefExpression(TransExpression):
     """Expression representing the reference transmission
@@ -121,14 +123,12 @@ class RefExpression(TransExpression):
 
     def __init__(self, Io=None, It=None):
         if Io is None:
-            self.Io = defaults.trans_mode.ref_mode.Io
-        else:
-            self.Io = Io
+            Io = defaults.trans_mode.ref_mode.Io
 
         if It is None:
-            self.It = defaults.trans_mode.ref_mode.It
-        else:
-            self.It = It
+            It = defaults.trans_mode.ref_mode.It
+
+        TransExpression.__init__(self, Io, It)
 
 class ArbitraryExpression(Expression):
     def __init__(self, expr):
