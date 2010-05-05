@@ -8,6 +8,8 @@ class Mode:
 # global defaults
 x_name = "sam_hor"
 y_name = "sam_vert"
+colormaps = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot', 'hsv',
+    'pink', 'prism', 'spring', 'summer', 'winter']
 colormap = "hot"
 title = ""
 

@@ -15,10 +15,6 @@ def legacy_i_callback(option, opt_str, value, parser):
     parser.values.zName = value
 
 def parse_arguments(args):
-    # matplotlib's color maps
-    colormaps = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot',
-        'hsv', 'pink', 'prism', 'spring', 'summer', 'winter']
-
     USAGE = '%prog [OPTIONS...] FILE [ROI-NUMBER]'
     VERSION = '%prog ' + frankenplot.__version__ + ', by Ken McIvor <mcivor@iit.edu>'
     parser = optparse.OptionParser(usage=USAGE, version=VERSION)
@@ -48,7 +44,7 @@ def parse_arguments(args):
 
     parser.add_option('-m',
         action='store', dest='colormap', default=defaults.colormap,
-        help=('color map (%s)' % ', '.join(colormaps)), metavar='C')
+        help=('color map (%s)' % ', '.join(defaults.colormaps)), metavar='C')
 
     opts, args = parser.parse_args(args)
     if not 0 < len(args) < 3:
@@ -68,7 +64,7 @@ def parse_arguments(args):
             fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
 
     cm = opts.colormap.lower()
-    if cm not in colormaps:
+    if cm not in defaults.colormaps:
         fatal_error('invalid color map "%s"', opts.colormap)
     else:
         opts.colormap = cm
