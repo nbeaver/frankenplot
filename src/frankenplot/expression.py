@@ -88,10 +88,47 @@ class ChannelExpression(FluorExpression):
         return FluorExpression.__str__(self)
 
 class TransExpression(Expression):
-    pass
+    """Expression in Transmission Mode
+
+    """
+
+    def __str__(self):
+        Io = "$%s" % self.Io
+        It = "$%s" % self.It
+
+        return "log(%s/%s)" % (Io, It)
 
 class SampleExpression(TransExpression):
-    pass
+    """Expression representing the sample transmission
+
+    """
+
+    def __init__(self, Io=None, It=None):
+        if Io is None:
+            self.Io = defaults.samp_mode.Io
+        else:
+            self.Io = Io
+
+        if It is None:
+            self.It = defaults.samp_mode.It
+        else:
+            self.It = It
+
+class RefExpression(TransExpression):
+    """Expression representing the reference transmission
+
+    """
+
+    def __init__(self, Io=None, It=None):
+        if Io is None:
+            self.Io = defaults.ref_mode.Io
+        else:
+            self.Io = Io
+
+        if It is None:
+            self.It = defaults.ref_mode.It
+        else:
+            self.It = It
 
 class ArbitraryExpression(Expression):
     def __init__(self, expr):
