@@ -685,9 +685,21 @@ class PlotPanel(wxmpl.PlotPanel):
 
         # replace groups in the expression with their constituent columns
         z_expr_s = expression.expand_groups(z_expr_s, self.app.groups)
+        print z_expr_s
 
         # get the plot data
-        x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr_s)
+        x, y, z = None, None, None
+        try:
+            x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr_s)
+        except xdp.errors.ColumnNameError, e:
+            msg = "No such column in data file: '%s'" % e
+            title = "Plot Error"
+
+            dlg = wx.MessageDialog(self, msg, title, wx.OK|wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+            raise
 
         # set up axes
         fig = self.get_figure()
