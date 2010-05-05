@@ -568,7 +568,19 @@ class FluorControlsPanel(PlotControlPanel):
         pass
 
     def OnPageSelected(self, e):
-        pass
+        if self.in_sum_mode():
+            # ignore the ValueError that's raised when there's no ROI selected
+            # and we want an ROI plot (occurs on startup when PlotApp is
+            # initialised but there's no plot yet)
+            try:
+                self._plot_roi()
+            except ValueError:
+                if self.roi_selector.GetValue():
+                    raise
+        elif self.in_channel_mode():
+            self._plot_channel()
+        else:
+            raise Exception("unknown mode")
 
 # ============================================================================
 
