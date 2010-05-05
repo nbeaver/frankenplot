@@ -957,9 +957,9 @@ class MainWindow(wx.Frame):
 
         fileMenu.AppendSeparator()
 
-        item = fileMenu.Append(wx.ID_CLOSE, '&Close Window\tCtrl+W',
-            'Close the current plot window')
-        self.Bind(wx.EVT_MENU, self.OnMenuFileClose, item)
+        item = fileMenu.Append(wx.ID_EXIT, 'E&xit\tCtrl+Q',
+            'Exit frankenplot')
+        self.Bind(wx.EVT_MENU, self.OnMenuFileExit, item)
 
         # Edit menu
         editMenu = wx.Menu()
@@ -1063,11 +1063,11 @@ class MainWindow(wx.Frame):
         """
         self.printer.printFigure(self.get_figure())
 
-    def OnMenuFileClose(self, evt):
+    def OnMenuFileExit(self, evt):
         """
-        Handles File->Close menu events.
+        Handles File->Exit menu events.
         """
-        self.Close()
+        self.app.Exit()
 
     def OnMenuHelpAbout(self, evt):
         """
