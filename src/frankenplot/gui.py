@@ -878,44 +878,6 @@ class EditChannelsDialog(wx.Dialog):
     # FIXME: implement
     pass
 
-
-
-class ArbitraryExpressionDialog(wx.Dialog):
-    def __init__(self, parent, id, app, title="Plot Arbitrary Expression", **kwargs):
-        wx.Dialog.__init__(self, parent, id, title, size=(300,75), **kwargs)
-        self.app = app
-        self.parent = parent
-
-        main_sizer = wx.GridBagSizer()
-
-        main_sizer.Add(wx.StaticText(parent=self, label="Expression: "),
-                flag=wx.ALIGN_CENTER_VERTICAL, pos=(0,0))
-
-        self.expr_txt = wx.TextCtrl(parent=self, style=wx.TE_PROCESS_ENTER)
-        self.expr_txt.SetValue(str(self.app.plot_panel.plot_opts["z_expr"]))
-        self.Bind(wx.EVT_TEXT_ENTER, self.OnOK, self.expr_txt)
-        self.expr_txt.SetMinSize((200, -1))
-        main_sizer.Add(self.expr_txt, pos=(0,1))
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ok_btn = wx.Button(self, label="OK", id=wx.ID_OK)
-        self.Bind(wx.EVT_BUTTON, self.OnOK, ok_btn)
-        cancel_btn = wx.Button(self, label="Cancel", id=wx.ID_CANCEL)
-
-        sizer.Add(ok_btn)
-        sizer.Add(cancel_btn)
-        main_sizer.Add(sizer, pos=(1,1))
-
-        self.SetSizer(main_sizer)
-
-    def OnCancel(self, e):
-        self.Close()
-
-    def OnOK(self, e):
-        expr = ArbitraryExpression(self.expr_txt.GetValue())
-        self.app.plot(expr)
-        self.Close()
-
 # ============================================================================
 
 class MainWindow(wx.Frame):
@@ -1134,8 +1096,16 @@ class MainWindow(wx.Frame):
         dlg.Destroy()
 
     def OnMenuPlotExpr(self, e):
-        dlg = ArbitraryExpressionDialog(parent=self, app=self.app, id=wx.ID_ANY)
-        dlg.ShowModal()
+        message = "Expression:"
+        title = "Edit Expression"
+        value = str(self.app.plot_panel.plot_opts["z_expr"])
+
+        dlg = wx.TextEntryDialog(self, message, title, value)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            expr = ArbitraryExpression(dlg.GetValue())
+            self.app.plot(expr)
+
         dlg.Destroy()
 
     def OnMenuViewPlotControls(self, e):
