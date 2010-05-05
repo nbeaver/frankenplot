@@ -692,7 +692,7 @@ class CMapControlsPanel(PlotControlPanel):
 
 # ============================================================================
 
-class PlotControls(wx.Frame):
+class PlotControlsFrame(wx.Frame):
     def __init__(self, parent, id, app, **kwargs):
         wx.Frame.__init__(self, parent, id, title="Plot Controls", **kwargs)
 
@@ -1214,7 +1214,7 @@ class PlotApp(wx.App):
                                       app=self)
         self.main_window.Show(True)
 
-        self.plot_ctrls = PlotControls(parent=None, id=wx.ID_ANY, app=self)
+        self.plot_ctrls = PlotControlsFrame(parent=None, id=wx.ID_ANY, app=self)
         self.plot_ctrls.Show(True)
 
         return True
