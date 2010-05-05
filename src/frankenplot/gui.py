@@ -814,6 +814,9 @@ class PlotPanel(wxmpl.PlotPanel):
             self.img.set_data(z)
             self.cb.set_array(z)
 
+            # update the colormap
+            self.img.set_cmap(getattr(matplotlib.cm, colormap))
+
             # recalculate limits of the colorbar
             self.cb.autoscale()
 
@@ -966,10 +969,9 @@ class MainWindow(wx.Frame):
                 help="Edit plot title")
         self.Bind(wx.EVT_MENU, self.OnMenuEditPlotTitle, item)
 
-        # FIXME: implement
         item = editMenu.Append(id=wx.ID_ANY, text="Col&ormap...",
                 help="Edit plot colormap")
-        item.Enable(False)
+        self.Bind(wx.EVT_MENU, self.OnMenuEditColormap, item)
 
         editMenu.AppendSeparator()
 
@@ -1110,6 +1112,21 @@ class MainWindow(wx.Frame):
 
     def OnMenuViewPlotControls(self, e):
         self.app.plot_ctrls.Show(self.view_plot_ctrls_item.IsChecked())
+
+    def OnMenuEditColormap(self, e):
+        message = "Choose colormap:"
+        title = "Edit Colormap"
+        choices = defaults.colormaps
+        dlg = wx.SingleChoiceDialog(self, message, title, choices,
+                wx.CHOICEDLG_STYLE)
+
+        # set the selection to the current colormap
+        dlg.SetSelection(choices.index(self.app.plot_panel.plot_opts["colormap"]))
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.app.plot_panel.change_plot(colormap=dlg.GetStringSelection())
+
+        dlg.Destroy()
 
     def get_figure(self):
         return self.plot_panel.get_figure()
