@@ -9,6 +9,14 @@ from frankenplot import defaults, util
 # ============================================================================
 
 class Expression(object):
+    """Abstract class describing an expression
+
+    For an arbitrary expression, use ArbitraryExpression.
+    """
+
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError
+
     def __str__(self):
         """Produces an expression parsable by xdp.Data.evaluate()
 
