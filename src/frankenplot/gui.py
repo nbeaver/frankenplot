@@ -439,6 +439,7 @@ class FluorControlsPanel(PlotControlPanel):
         self.corr_cb.SetValue(True)
         self.corr_cb.Disable()
         self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
+        self.norm_cb.SetValue(defaults.fluor_mode.normalize)
         self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
 
         sizer.Add(self.corr_cb)
@@ -448,13 +449,15 @@ class FluorControlsPanel(PlotControlPanel):
 
     def _plot_roi(self):
         roi = int(self.roi_selector.GetValue())
-        expr = ROIExpression(roi)
+        normalize = self.norm_cb.GetValue()
+        expr = ROIExpression(roi, normalize=normalize)
         self.app.plot(expr)
 
     def _plot_channel(self):
         roi = int(self.roi_selector.GetValue())
         channel = int(self.chan_sel.GetValue())
-        expr = ChannelExpression(roi=roi, channel=channel)
+        normalize = self.norm_cb.GetValue()
+        expr = ChannelExpression(roi=roi, channel=channel, normalize=normalize)
         self.app.plot(expr)
 
     def OnSelectROI(self, e):
