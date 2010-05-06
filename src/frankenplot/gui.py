@@ -434,10 +434,11 @@ class FluorControlsPanel(PlotControlPanel):
     def _init_plot_options(self):
         box = wx.StaticBox(parent=self, id=wx.ID_ANY, label="Plot Options")
         sizer = wx.StaticBoxSizer(box=box, orient=wx.VERTICAL)
+
         self.corr_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Use corrected ROIs")
-        # FIXME: get the proper default value
-        self.corr_cb.SetValue(True)
-        self.corr_cb.Disable()
+        self.corr_cb.SetValue(defaults.fluor_mode.corrected)
+        self.Bind(wx.EVT_CHECKBOX, self.OnCorrected, self.corr_cb)
+
         self.norm_cb = wx.CheckBox(parent=self, id=wx.ID_ANY, label="Normalize data")
         self.norm_cb.SetValue(defaults.fluor_mode.normalize)
         self.Bind(wx.EVT_CHECKBOX, self.OnNormalize, self.norm_cb)
@@ -467,14 +468,20 @@ class FluorControlsPanel(PlotControlPanel):
             return
 
         normalize = self.norm_cb.GetValue()
+        corrected = self.corr_cb.GetValue()
+
         expr = ROIExpression(roi, normalize=normalize)
         self.app.plot(expr)
 
     def _plot_channel(self):
         roi = int(self.roi_selector.GetValue())
         channel = int(self.chan_sel.GetValue())
+
         normalize = self.norm_cb.GetValue()
-        expr = ChannelExpression(roi=roi, channel=channel, normalize=normalize)
+        corrected = self.corr_cb.GetValue()
+
+        expr = ChannelExpression(roi=roi, channel=channel,
+                                 normalize=normalize, corrected=corrected)
         self.app.plot(expr)
 
     def OnSelectROI(self, e):
@@ -573,6 +580,9 @@ class FluorControlsPanel(PlotControlPanel):
         """Handle toggling of 'Normalize data' checkbox
 
         """
+        self._plot()
+
+    def OnCorrected(self, e):
         self._plot()
 
     def OnPageDeselected(self, e):
