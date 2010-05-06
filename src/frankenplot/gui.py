@@ -426,7 +426,7 @@ class FluorControlsPanel(PlotControlPanel):
         cm_sizer.Add(self.enable_chan_cb)
 
         # add to main sizer
-        self.main_sizer.Add(cm_sizer)
+        self.main_sizer.Add(cm_sizer, flag=wx.EXPAND)
 
         self.cm_items = (self.chan_prev_btn, self.chan_sel,
                          self.chan_next_btn, self.enable_chan_cb)
