@@ -23,7 +23,7 @@ from frankenplot import (data as fdata,
                          expression,
                          util,
                          __version__)
-from expression import ArbitraryExpression, ChannelExpression, RefExpression, ROIExpression, SampleExpression
+from expression import ArbitraryExpression, ChannelExpression, RefExpression, ROIExpression, SampleExpression, TransExpression
 
 # ============================================================================
 
@@ -648,11 +648,23 @@ class TransControlsPanel(PlotControlPanel):
             grid.Add(self.it_cb, (1,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
+            self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
             grid.Add(self.plot_btn, (2,1), span=(1,2))
 
             sizer.Add(grid)
             self.SetSizer(sizer)
             sizer.Fit(self)
+
+        def _plot(self):
+            # remove the preceding dollar signs
+            Io = self.io_cb.GetValue()[1:]
+            It = self.it_cb.GetValue()[1:]
+
+            expr = TransExpression(Io, It)
+            self.app.plot(expr)
+
+        def OnPlot(self, e):
+            self._plot()
 
     class CustomExprPanel(wx.Panel):
         def __init__(self, parent, id, app, **kwargs):
@@ -671,14 +683,23 @@ class TransControlsPanel(PlotControlPanel):
                     flag=wx.ALIGN_CENTER_VERTICAL)
             self.expr_txt = wx.TextCtrl(self, size=(150, 27.5),
                     style=wx.TE_PROCESS_ENTER)
+            self.Bind(wx.EVT_TEXT_ENTER, self.OnPlot, self.expr_txt)
             grid.Add(self.expr_txt, (0,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
+            self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
             grid.Add(self.plot_btn, (1,1))
 
             sizer.Add(grid)
             self.SetSizer(sizer)
             sizer.Fit(self)
+
+        def _plot(self):
+            expr = ArbitraryExpression(self.expr_txt.GetValue())
+            self.app.plot(expr)
+
+        def OnPlot(self, e):
+            self._plot()
 
     def __init__(self, parent, id, app, **kwargs):
         PlotControlPanel.__init__(self, parent, id, app, **kwargs)
@@ -748,10 +769,10 @@ class TransControlsPanel(PlotControlPanel):
         self.app.plot(expr)
 
     def _plot_custom_cols(self):
-        pass
+        self.custom_cols_panel._plot()
 
     def _plot_custom_expr(self):
-        pass
+        self.custom_expr_panel._plot()
 
     def OnSampMode(self, e):
         self.mode = self.SAMPLE_MODE
@@ -783,6 +804,8 @@ class TransControlsPanel(PlotControlPanel):
         self.custom_cols_panel.Enable()
         self.custom_expr_panel.Disable()
 
+        self.custom_cols_panel.io_cb.SetFocus()
+
         self._plot_custom_cols()
 
     def OnCustomExprMode(self, e):
@@ -790,6 +813,8 @@ class TransControlsPanel(PlotControlPanel):
 
         self.custom_expr_panel.Enable()
         self.custom_cols_panel.Disable()
+
+        self.custom_expr_panel.expr_txt.SetFocus()
 
         self._plot_custom_cols()
 
