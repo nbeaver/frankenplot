@@ -471,7 +471,7 @@ class FluorControlsPanel(PlotControlPanel):
         corrected = self.corr_cb.GetValue()
 
         expr = ROIExpression(roi, normalize=normalize)
-        self.app.plot(expr)
+        self.app.plot(expr, groups=self._get_groups())
 
     def _plot_channel(self):
         roi = int(self.roi_selector.GetValue())
@@ -483,6 +483,35 @@ class FluorControlsPanel(PlotControlPanel):
         expr = ChannelExpression(roi=roi, channel=channel,
                                  normalize=normalize, corrected=corrected)
         self.app.plot(expr)
+
+    def _get_groups(self):
+        """Fluorescence Mode-specific groups
+
+        Since we don't want to modify the application-wide ROI groups since
+        users would expect to have an ROI group expand to all channels when
+        not in Fluoresence Mode, we need to make of copy of app.groups and
+        then remove the columns corresponding to disabled channels from all of
+        the ROI groups (%corr_roi_* and %roi_*) from the copy.
+        """
+
+        groups = copy.deepcopy(self.app.groups)
+
+        # remove disabled channels from each ROI group
+        for channel, state in self.channel_state.iteritems():
+            if state:
+                continue
+
+            # remove the channel from each ROI group
+            for group_name in self.app.roi_group_names:
+                roi, corrected = util.parse_roi_group_name(group_name)
+                group = groups[group_name]
+
+                # determine the column name for the ROI+channel combination
+                col = util.get_data_column_name(roi, channel, corrected)
+
+                group.discard(col)
+
+        return groups
 
     def OnSelectROI(self, e):
         self._plot()
@@ -503,19 +532,6 @@ class FluorControlsPanel(PlotControlPanel):
         channel = int(self.chan_sel.GetValue())
         state = self.enable_chan_cb.GetValue()
         self.channel_state[channel] = state
-
-        # update the membership of every ROI group
-        # (%roi_1, ... , %roi_N, %corr_roi_1, ... , %corr_roi_N)
-        for group_name in self.app.roi_group_names:
-            roi, corrected = util.parse_roi_group_name(group_name)
-            group = self.app.groups[group_name]
-
-            col = util.get_data_column_name(roi, channel, corrected)
-
-            if state:
-                group.add(col)
-            else:
-                group.discard(col)
 
     def _set_channel(self, channel):
         if not self.in_channel_mode():
@@ -813,12 +829,13 @@ class PlotPanel(wxmpl.PlotPanel):
         y_name = kwargs.pop("y_name", defaults.y_name)
         title = kwargs.pop("title", defaults.title)
         colormap = kwargs.pop("colormap", defaults.colormap)
+        groups = kwargs.pop("groups", self.app.groups)
 
         # get string form of expression
         z_expr_s = str(z_expr)
 
         # replace groups in the expression with their constituent columns
-        z_expr_s = expression.expand_groups(z_expr_s, self.app.groups)
+        z_expr_s = expression.expand_groups(z_expr_s, groups)
         print z_expr_s
 
         # get the plot data
