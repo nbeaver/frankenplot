@@ -616,12 +616,72 @@ class TransControlsPanel(PlotControlPanel):
 
     SAMPLE_MODE = 1
     REF_MODE = 2
-    CUSTOM_MODE = 3
+    CUSTOM_COLS_MODE = 3
+    CUSTOM_EXPR_MODE = 4
+
+    class CustomColsPanel(wx.Panel):
+        def __init__(self, parent, id, app, **kwargs):
+            wx.Panel.__init__(self, parent, id, **kwargs)
+            self.app = app
+
+            self._init_gui_elements()
+
+        def _init_gui_elements(self):
+            box = wx.StaticBox(self, wx.ID_ANY, "Custom Columns")
+            sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+            grid = wx.GridBagSizer(3, 2)
+
+            cols = ["$" + col for col in self.app.columns]
+            groups = self.app.groups.keys()
+            choices = util.natural_sort(cols + groups)
+
+            # I_o
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Io:"), (0,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.io_cb = wx.ComboBox(self, choices=choices, size=(150, 27))
+            grid.Add(self.io_cb, (0,1))
+
+            # I_t
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "It:"), (1,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.it_cb = wx.ComboBox(self, choices=choices, size=(150, 27))
+            grid.Add(self.it_cb, (1,1))
+
+            self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
+            grid.Add(self.plot_btn, (2,1), span=(1,2))
+
+            sizer.Add(grid)
+            self.SetSizer(sizer)
+            sizer.Fit(self)
+
+    class CustomExprPanel(wx.Panel):
+        def __init__(self, parent, id, app, **kwargs):
+            wx.Panel.__init__(self, parent, id, **kwargs)
+            self.app = app
+
+            self._init_gui_elements()
+
+        def _init_gui_elements(self):
+            box = wx.StaticBox(self, wx.ID_ANY, "Custom Expression")
+            sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+            grid = wx.GridBagSizer(2, 2)
+
+            # expr_txt
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Expression:"), (0,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.expr_txt = wx.TextCtrl(self, size=(150, 27.5),
+                    style=wx.TE_PROCESS_ENTER)
+            grid.Add(self.expr_txt, (0,1))
+
+            self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
+            grid.Add(self.plot_btn, (1,1))
+
+            sizer.Add(grid)
+            self.SetSizer(sizer)
+            sizer.Fit(self)
 
     def __init__(self, parent, id, app, **kwargs):
         PlotControlPanel.__init__(self, parent, id, app, **kwargs)
-
-        self.id = id
 
         self._init_gui_elements()
 
@@ -629,30 +689,43 @@ class TransControlsPanel(PlotControlPanel):
         self.mode = self.SAMPLE_MODE
 
     def _init_gui_elements(self):
-        panel = wx.Panel(parent=self, id=wx.ID_ANY)
+        panel = self.panel = wx.Panel(parent=self, id=wx.ID_ANY)
 
-        grid = wx.FlexGridSizer(rows=3, cols=1)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer = sizer
 
         # sample transmission
         self.samp_rb = wx.RadioButton(panel, wx.ID_ANY, "Sample transmission",
                 style=wx.RB_GROUP)
         self.Bind(wx.EVT_RADIOBUTTON, self.OnSampMode, self.samp_rb)
-        grid.Add(self.samp_rb)
+        sizer.Add(self.samp_rb)
 
         # reference transmission
         self.ref_rb = wx.RadioButton(panel, wx.ID_ANY, "Reference transmission")
         self.Bind(wx.EVT_RADIOBUTTON, self.OnRefMode, self.ref_rb)
-        grid.Add(self.ref_rb)
+        sizer.Add(self.ref_rb)
 
-        # custom
-        self.custom_rb = wx.RadioButton(panel, wx.ID_ANY, "Custom")
-        self.custom_rb.Disable()
-        self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomMode, self.custom_rb)
-        grid.Add(self.custom_rb)
+        # custom columns
+        self.custom_cols_rb = wx.RadioButton(self.panel, wx.ID_ANY, "Custom columns")
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomColsMode, self.custom_cols_rb)
+        sizer.Add(self.custom_cols_rb)
 
-        panel.SetSizer(grid)
-        grid.Fit(panel)
-        self.panel = panel
+        self.custom_cols_panel = self.CustomColsPanel(self, wx.ID_ANY, self.app)
+        self.custom_cols_panel.Disable()
+        sizer.Add(self.custom_cols_panel, flag=wx.EXPAND)
+
+        # custom expression
+        self.custom_expr_rb = wx.RadioButton(panel, wx.ID_ANY, "Custom expression")
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomExprMode, self.custom_expr_rb)
+        self.sizer.Add(self.custom_expr_rb)
+
+        self.custom_expr_panel = self.CustomExprPanel(self, wx.ID_ANY, self.app)
+        self.custom_expr_panel.Disable()
+        self.sizer.Add(self.custom_expr_panel)
+
+        # size and fit
+        panel.SetSizer(sizer)
+        sizer.Fit(panel)
 
     def in_sample_mode(self):
         return self.mode == self.SAMPLE_MODE
@@ -660,8 +733,11 @@ class TransControlsPanel(PlotControlPanel):
     def in_ref_mode(self):
         return self.mode == self.REF_MODE
 
-    def in_custom_mode(self):
-        return self.mode == self.CUSTOM_MODE
+    def in_custom_cols_mode(self):
+        return self.mode == self.CUSTOM_COLS_MODE
+
+    def in_custom_expr_mode(self):
+        return self.mode == self.CUSTOM_EXPR_MODE
 
     def _plot_sample(self):
         expr = SampleExpression()
@@ -671,11 +747,18 @@ class TransControlsPanel(PlotControlPanel):
         expr = RefExpression()
         self.app.plot(expr)
 
-    def _plot_custom(self):
+    def _plot_custom_cols(self):
+        pass
+
+    def _plot_custom_expr(self):
         pass
 
     def OnSampMode(self, e):
         self.mode = self.SAMPLE_MODE
+
+        self.custom_cols_panel.Disable()
+        self.custom_expr_panel.Disable()
+
         try:
             self._plot_sample()
         except xdp.errors.ColumnNameError:
@@ -684,23 +767,41 @@ class TransControlsPanel(PlotControlPanel):
 
     def OnRefMode(self, e):
         self.mode = self.REF_MODE
+
+        self.custom_cols_panel.Disable()
+        self.custom_expr_panel.Disable()
+
         try:
             self._plot_ref()
         except xdp.errors.ColumnNameError:
             # FIXME: do something better? move back to previous selection?
             pass
 
-    def OnCustomMode(self, e):
-        self.mode = self.CUSTOM_MODE
-        self._plot_custom()
+    def OnCustomColsMode(self, e):
+        self.mode = self.CUSTOM_COLS_MODE
+
+        self.custom_cols_panel.Enable()
+        self.custom_expr_panel.Disable()
+
+        self._plot_custom_cols()
+
+    def OnCustomExprMode(self, e):
+        self.mode = self.CUSTOM_EXPR_MODE
+
+        self.custom_expr_panel.Enable()
+        self.custom_cols_panel.Disable()
+
+        self._plot_custom_cols()
 
     def OnPageSelected(self, e):
         if self.in_sample_mode():
             self._plot_sample()
         elif self.in_ref_mode():
             self._plot_ref()
-        elif self.in_custom_mode():
-            self._plot_custom()
+        elif self.in_custom_cols_mode():
+            self._plot_custom_cols()
+        elif self.in_custom_expr_mode():
+            self._plot_custom_expr()
         else:
             # FIXME use better exception
             raise Exception("unknown mode")
