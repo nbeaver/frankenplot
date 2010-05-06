@@ -1191,14 +1191,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
         item.Enable(False)
 
-        # Plot menu
-        plot_menu = wx.Menu()
-        menuBar.Append(plot_menu, "&Plot")
-
-        item = plot_menu.Append(wx.ID_ANY, "&Expression...\tCtrl+T",
-            help="Plot arbitrary expression")
-        self.Bind(wx.EVT_MENU, self.OnMenuPlotExpr, item)
-
         # View menu
         view_menu = wx.Menu()
         menuBar.Append(view_menu, "&View")
@@ -1300,19 +1292,6 @@ class MainWindow(wx.Frame):
 
         if dlg.ShowModal() == wx.ID_OK:
             self.app.plot_panel.change_plot(title=dlg.GetValue())
-
-        dlg.Destroy()
-
-    def OnMenuPlotExpr(self, e):
-        message = "Expression:"
-        title = "Edit Expression"
-        value = str(self.app.plot_panel.plot_opts["z_expr"])
-
-        dlg = wx.TextEntryDialog(self, message, title, value)
-
-        if dlg.ShowModal() == wx.ID_OK:
-            expr = ArbitraryExpression(dlg.GetValue())
-            self.app.plot(expr)
 
         dlg.Destroy()
 
