@@ -108,7 +108,8 @@ class TransExpression(Expression):
         Io = "$%s" % self.Io
         It = "$%s" % self.It
 
-        return "log(%s/%s)" % (Io, It)
+        s = defaults.trans_mode.expr % dict(It=It, Io=Io)
+        return s
 
 class SampleExpression(TransExpression):
     """Expression representing the sample transmission

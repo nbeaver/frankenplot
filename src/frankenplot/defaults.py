@@ -21,6 +21,7 @@ fluor_mode.z_name = "Io"
 
 # Transmission Mode defaults
 trans_mode = Mode()
+trans_mode.expr = "log(%(It)s/%(Io)s)"
 
 # Transmission/Sample Mode defaults
 trans_mode.samp_mode = Mode()
