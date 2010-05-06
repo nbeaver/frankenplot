@@ -690,6 +690,41 @@ class CMapControlsPanel(PlotControlPanel):
     def __init__(self, parent, id, app, **kwargs):
         PlotControlPanel.__init__(self, parent, id, app, **kwargs)
 
+        self._init_gui_elements()
+
+    def _init_gui_elements(self):
+        panel = wx.Panel(self, wx.ID_ANY)
+
+        sizer = wx.GridBagSizer(2, 2)
+
+        sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Expression: "), (0,0),
+                flag=wx.ALIGN_CENTER_VERTICAL)
+        self.expr_txt = wx.TextCtrl(panel, size=(150, 27.5),
+                style=wx.TE_PROCESS_ENTER)
+        self.Bind(wx.EVT_TEXT_ENTER, self.OnPlot, self.expr_txt)
+        sizer.Add(self.expr_txt, (0,1))
+
+        self.plot_btn = wx.Button(panel, label="Plot")
+        self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
+        sizer.Add(self.plot_btn, (1,1))
+
+        panel.SetSizer(sizer)
+        sizer.Fit(panel)
+        self.panel = panel
+
+    def _plot(self):
+        expr_s = self.expr_txt.GetValue()
+        if expr_s:
+            expr = ArbitraryExpression(expr_s)
+            self.app.plot(expr)
+
+    def OnPlot(self, e):
+        self._plot()
+
+    def OnPageSelected(self, e):
+        self._plot()
+        self.expr_txt.SetFocus()
+
 # ============================================================================
 
 class PlotControlsFrame(wx.Frame):
