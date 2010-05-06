@@ -3,3 +3,6 @@ class FrankenplotException(Exception):
 
 class InvalidDataColumnNameException(Exception):
     pass
+
+class UnknownPlotModeException(FrankenplotException):
+    pass
