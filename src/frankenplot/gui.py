@@ -622,6 +622,7 @@ class TransControlsPanel(PlotControlPanel):
     class CustomColsPanel(wx.Panel):
         def __init__(self, parent, id, app, **kwargs):
             wx.Panel.__init__(self, parent, id, **kwargs)
+            self.parent = parent
             self.app = app
 
             self._init_gui_elements()
@@ -659,6 +660,8 @@ class TransControlsPanel(PlotControlPanel):
             # remove the preceding dollar signs
             Io = self.io_cb.GetValue()[1:]
             It = self.it_cb.GetValue()[1:]
+
+            self.parent._set_custom_values(Io, It)
 
             expr = TransExpression(Io, It)
             self.app.plot(expr)
@@ -708,6 +711,8 @@ class TransControlsPanel(PlotControlPanel):
 
         # start in sample mode by default
         self.mode = self.SAMPLE_MODE
+        self._set_custom_values(defaults.trans_mode.samp_mode.Io,
+                                defaults.trans_mode.samp_mode.It)
 
     def _init_gui_elements(self):
         panel = self.panel = wx.Panel(parent=self, id=wx.ID_ANY)
@@ -774,11 +779,22 @@ class TransControlsPanel(PlotControlPanel):
     def _plot_custom_expr(self):
         self.custom_expr_panel._plot()
 
+    def _set_custom_values(self, Io, It):
+        Io = "$" + Io
+        It = "$" + It
+        expr = defaults.trans_mode.expr % dict(Io=Io, It=It)
+        self.custom_cols_panel.io_cb.SetValue(Io)
+        self.custom_cols_panel.it_cb.SetValue(It)
+        self.custom_expr_panel.expr_txt.SetValue(expr)
+
     def OnSampMode(self, e):
         self.mode = self.SAMPLE_MODE
 
         self.custom_cols_panel.Disable()
         self.custom_expr_panel.Disable()
+
+        self._set_custom_values(defaults.trans_mode.samp_mode.Io,
+                                defaults.trans_mode.samp_mode.It)
 
         try:
             self._plot_sample()
@@ -791,6 +807,9 @@ class TransControlsPanel(PlotControlPanel):
 
         self.custom_cols_panel.Disable()
         self.custom_expr_panel.Disable()
+
+        self._set_custom_values(defaults.trans_mode.ref_mode.Io,
+                                defaults.trans_mode.ref_mode.It)
 
         try:
             self._plot_ref()
