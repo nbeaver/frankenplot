@@ -1216,9 +1216,11 @@ class PlotApp(wx.App):
             self.hdr = None
             self.data = None
 
+        self.columns = self.data.getColumnNames()
+
         # self.rois is a dict: 'roi' => list (of columns)
         # self.channels is a list of channels
-        self.rois, self.corr_rois, self.channels = self._parse_columns(self.data.getColumnNames())
+        self.rois, self.corr_rois, self.channels = self._parse_columns(self.columns)
 
         # initialise groups (dict: group name (str) => members (set))
         self.groups = {}
