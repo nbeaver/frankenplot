@@ -447,8 +447,25 @@ class FluorControlsPanel(PlotControlPanel):
 
         self.main_sizer.Add(sizer, flag=wx.EXPAND)
 
+    def _plot(self):
+        """Plot using the given parameters based on the current mode
+
+        """
+        if self.in_sum_mode():
+            self._plot_roi()
+        elif self.in_channel_mode():
+            self._plot_channel()
+        else:
+            raise UnknownPlotModeException()
+
     def _plot_roi(self):
-        roi = int(self.roi_selector.GetValue())
+        try:
+            roi = int(self.roi_selector.GetValue())
+        except ValueError:
+            # if there's no value in the ROI selector, don't plot anything
+            # (this happens on startup)
+            return
+
         normalize = self.norm_cb.GetValue()
         expr = ROIExpression(roi, normalize=normalize)
         self.app.plot(expr)
@@ -461,12 +478,7 @@ class FluorControlsPanel(PlotControlPanel):
         self.app.plot(expr)
 
     def OnSelectROI(self, e):
-        roi = int(self.roi_selector.GetValue())
-
-        if self.in_sum_mode():
-            self._plot_roi()
-        elif self.in_channel_mode():
-            self._plot_channel()
+        self._plot()
 
     def OnNextChan(self, e):
         self._set_channel(self.cur_channel + 1)
@@ -549,9 +561,7 @@ class FluorControlsPanel(PlotControlPanel):
             item.Disable()
 
         # update plot to show the active ROI
-        roi = self.roi_selector.GetValue()
-        if roi:
-            self._plot_roi()
+        self._plot_roi()
 
     def in_sum_mode(self):
         return self.mode == self.SUM_MODE
@@ -563,27 +573,13 @@ class FluorControlsPanel(PlotControlPanel):
         """Handle toggling of 'Normalize data' checkbox
 
         """
-        expr = self.app.plot_panel.plot_opts["z_expr"]
-        expr.normalize = self.norm_cb.GetValue()
-        self.app.plot(expr)
+        self._plot()
 
     def OnPageDeselected(self, e):
         pass
 
     def OnPageSelected(self, e):
-        if self.in_sum_mode():
-            # ignore the ValueError that's raised when there's no ROI selected
-            # and we want an ROI plot (occurs on startup when PlotApp is
-            # initialised but there's no plot yet)
-            try:
-                self._plot_roi()
-            except ValueError:
-                if self.roi_selector.GetValue():
-                    raise
-        elif self.in_channel_mode():
-            self._plot_channel()
-        else:
-            raise Exception("unknown mode")
+        self._plot()
 
 # ============================================================================
 
