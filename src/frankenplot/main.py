@@ -58,10 +58,10 @@ def parse_arguments(args):
         try:
             roiNumber = int(args[1])
         except ValueError:
-            fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
+            util.fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
 
         if roiNumber < 0:
-            fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
+            util.fatal_error('invalid ROI number "%s"', repr(args[1])[1:-1])
 
     cm = opts.colormap.lower()
     if cm not in defaults.colormaps:
