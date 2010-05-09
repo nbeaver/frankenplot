@@ -60,7 +60,7 @@ class FluorExpression(Expression):
 
     def on_plot(self, figure, app):
         # update the ROI selector with the currently plotted ROI
-        app.plot_cp.roi_selector.SetValue(str(self.roi))
+        app.plot_cp.roi_selector.SetStringSelection(str(self.roi))
 
 class ROIExpression(FluorExpression):
     """Expression representing a single ROI

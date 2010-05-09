@@ -262,7 +262,7 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnSaveClick(self, e):
         try:
-            roi = int(self.roi_selector.GetValue())
+            roi = int(self.roi_selector.GetStringSelection())
         except ValueError:
             # FIXME: come up with a better dummy value
             roi = 0
@@ -293,7 +293,7 @@ class SelectColumnsFrame(wx.Frame):
 
     def OnSelectROI(self, e):
         try:
-            roi_number = int(self.roi_selector.GetValue())
+            roi_number = int(self.roi_selector.GetStringSelection())
         except ValueError:
             return
 
@@ -374,8 +374,8 @@ class FluorControlsPanel(PlotControlPanel):
         # ROI selector
         # FIXME: allow switch between corrected/uncorrected ROIs
         rois = [str(i) for i in sorted(self.app.corr_rois.keys())]
-        self.roi_selector = wx.ComboBox(parent=self, choices=rois)
-        self.Bind(wx.EVT_COMBOBOX, self.OnSelectROI, self.roi_selector)
+        self.roi_selector = wx.Choice(parent=self, choices=rois)
+        self.Bind(wx.EVT_CHOICE, self.OnSelectROI, self.roi_selector)
         sizer.Add(wx.StaticText(parent=self, label="ROI:"), pos=(0,0),
                 flag=wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.roi_selector, pos=(0,1))
@@ -461,7 +461,7 @@ class FluorControlsPanel(PlotControlPanel):
 
     def _plot_roi(self):
         try:
-            roi = int(self.roi_selector.GetValue())
+            roi = int(self.roi_selector.GetStringSelection())
         except ValueError:
             # if there's no value in the ROI selector, don't plot anything
             # (this happens on startup)
@@ -470,11 +470,11 @@ class FluorControlsPanel(PlotControlPanel):
         normalize = self.norm_cb.GetValue()
         corrected = self.corr_cb.GetValue()
 
-        expr = ROIExpression(roi, normalize=normalize)
+        expr = ROIExpression(roi, normalize=normalize, corrected=corrected)
         self.app.plot(expr, groups=self._get_groups())
 
     def _plot_channel(self):
-        roi = int(self.roi_selector.GetValue())
+        roi = int(self.roi_selector.GetStringSelection())
         channel = int(self.chan_sel.GetValue())
 
         normalize = self.norm_cb.GetValue()
