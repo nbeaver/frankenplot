@@ -6,8 +6,8 @@ class Mode:
     pass
 
 # global defaults
-x_name = "sam_hor"
-y_name = "sam_vert"
+x_name = "smx"
+y_name = "smy"
 colormaps = ['autumn', 'bone', 'cool', 'copper', 'flag', 'gray', 'hot', 'hsv',
     'pink', 'prism', 'spring', 'summer', 'winter']
 colormap = "hot"
@@ -21,7 +21,8 @@ fluor_mode.z_name = "Io"
 
 # Transmission Mode defaults
 trans_mode = Mode()
-trans_mode.expr = "log(%(It)s/%(Io)s)"
+trans_mode.log_expr = "log((%(It)s)/(%(Io)s))"
+trans_mode.scalar_expr = "(%(It)s)/(%(Io)s)"
 
 # Transmission/Sample Mode defaults
 trans_mode.samp_mode = Mode()

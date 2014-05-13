@@ -1,0 +1,71 @@
+10-22-2011 Jacob Cole <jcole5@iit.edu>
+ * Release 2.3.2
+ * Now reopens files when plotting
+ [Carlo Segre <segre@iit.edu>]
+   * Removed references to numerix in favor of numpy
+
+08-30-2011 Jacob Cole <jcole5@iit.edu>
+ * Release 2.3.1
+ * Changed UI for setting upper and lower bounds
+ * When in 3D mode, changing plot parameters now updates both 2d and 3d windows
+ * Consolidated transmission, florescence and colormap mode into a single general
+   purpose expression mode
+
+07-22-2011 Jacob Cole <jcole5@iit.edu>
+ * Release 2.3
+ * Added 3d window and view menu controls to rotate the 3d view
+ * The scan_script list of scans is now shown as an open list
+ * The add new scan command is now a button and a edit menu item
+ * The user may now set upper and lower bounds of the plot using the edit menu
+
+06-22-2011 Jacob Cole <jcole5@iit.edu>
+ * Release 2.2.1
+ * Points picked with the mouse in script mode are truncated to integers
+ * Scan names entered previously in scan mode are carried over when adding 
+   new scans
+ * Filenames for writing scripts can now be entered from a textbox
+ * The number of ticks along the x-axis of the plot window has been reduced to 3
+ * Negative numbers are set to zero in order to avoid taking the logarithm of a
+   negative number
+
+06-22-2011 Jacob Cole <jcole5@iit.edu>
+ * Release 2.2
+ * Added new "Script Mode" that allows users to generate motor scripts by 
+   picking points using the mouse
+ * Fixed the commented out line issue from release 2.1
+
+06-04-2011 Jacob Cole	<jcole5@iit.edu>
+ * Release 2.1
+ * Commented out a line in gui.py in order to fix a problem that was crashing 
+   the application
+ * Changed order of a menu items so that the program enters transmission mode
+   first in order to open files with no ROIs without crashing.
+
+05-09-2010 Jason Petsod <jason@petsod.org>
+ * Release 2.0
+ * Complete rewrite to permit expressions and allow more flexible use of
+   input columns and the ability to alter the columns plotted in a GUI.
+
+02-20-2008  Ken McIvor <mcivor@iit.edu>
+ * Release 1.4
+ * WxMpl is now imported before matplotlib to avoid the warning "This call
+   to matplotlib.use() has no effect because the the backend has already
+   been chosen"
+
+03-06-2008  Ken McIvor <mcivor@iit.edu>
+ * Release 1.3
+ * Reverted to the pre-0.81 axes formatters
+   the color map
+
+04-15-2007  Ken McIvor <mcivor@iit.edu>
+ * Release 1.2
+ * Incorporated Bruce Ravel's patch, adding an "-m" option for specifying
+   the color map
+
+02-21-2007  Ken McIvor <mcivor@iit.edu>
+ * Release 1.1
+ * Matplotlib 0.87.7 compatability fixes
+
+12-06-2006  Ken McIvor <mcivor@iit.edu>
+ * Release 1.0
+

@@ -7,8 +7,20 @@ import re
 import sys
 
 from frankenplot import exceptions
+from frankenplot import defaults
 
 # ============================================================================
+
+# replace all negative numbers in the xdp dataset with zereos
+def remove_negatives(xdp_data):
+    for column in xdp_data.getColumnNames():
+	# ignore x and y axis data
+	if column == defaults.x_name or column == defaults.y_name:
+	    continue
+	for index,element in enumerate(xdp_data.get(column)):
+	    if element <= 1.0:
+		xdp_data.get(column)[index] = 1.0
+	
 
 def fatal_error(msg, *args):
     if args:

@@ -60,7 +60,8 @@ class FluorExpression(Expression):
 
     def on_plot(self, figure, app):
         # update the ROI selector with the currently plotted ROI
-        app.plot_cp.roi_selector.SetStringSelection(str(self.roi))
+	if hasattr(app,'plot_cp'):
+            app.plot_cp.roi_selector.SetStringSelection(str(self.roi))
 
 class ROIExpression(FluorExpression):
     """Expression representing a single ROI
@@ -108,7 +109,7 @@ class TransExpression(Expression):
         Io = "$%s" % self.Io
         It = "$%s" % self.It
 
-        s = defaults.trans_mode.expr % dict(It=It, Io=Io)
+        s = defaults.trans_mode.log_expr % dict(It=It, Io=Io)
         return s
 
 class SampleExpression(TransExpression):

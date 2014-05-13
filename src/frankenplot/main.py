@@ -75,14 +75,17 @@ def run(arguments):
     opts, args = parse_arguments(arguments)
     filename, roi_number = args
 
-    app = gui.PlotApp(filename=filename)
-
     # update plot defaults based on arguments
     defaults.x_name = opts.xName
     defaults.y_name = opts.yName
     defaults.fluor_mode.z_name = opts.zName
     defaults.fluor_mode.normalize = opts.normalize
 
+    app = gui.PlotApp(filename=filename)
+
+    """
     z_expr = expression.ROIExpression(roi_number)
     app.plot(z_expr)
+    """
+
     app.MainLoop()

@@ -4,7 +4,7 @@
 
 import re
 
-import matplotlib.numerix as nx
+import numpy as np
 
 import xdp
 
@@ -32,25 +32,25 @@ def getNumberUnique(vect):
 
 
 def makeXYZ(xCol, yCol, zCol):
-    idxs = nx.arange(0, zCol.shape[0], 1)
+    idxs = np.arange(0, zCol.shape[0], 1)
     nX = getNumberUnique(xCol)
     if nX == 1: # Y varies: (0, 0, z), (0, 1, z), ...
         nY = getNumberUnique(yCol)
-        nX = int(nx.ceil(yCol.shape[0] / float(nY)))
+        nX = int(np.ceil(yCol.shape[0] / float(nY)))
         y = yCol[0:nY]
         x = getUniqueSequence(xCol, nX)
-        z = nx.zeros((nY, nX), nx.Float)
-        z[:, :] = nx.minimum.reduce(zCol)
+        z = np.zeros((nY, nX), dtype=float)
+        z[:, :] = np.minimum.reduce(zCol)
         for i in range(0, nX):
             zc = zCol[nY*i:nY*(i+1)]
             n  = zc.shape[0]
             z[0:n,i] = zc
     else: # X varies: (0, 0, z), (1, 0, z), ...
-        nY = int(nx.ceil(xCol.shape[0] / float(nX)))
+        nY = int(np.ceil(xCol.shape[0] / float(nX)))
         x = xCol[0:nX]
         y = getUniqueSequence(yCol, nY)
-        z = nx.zeros((nY, nX), nx.Float)
-        z[:, :] = nx.minimum.reduce(zCol)
+        z = np.zeros((nY, nX), dtype=float)
+        z[:, :] = np.minimum.reduce(zCol)
         for i in range(0, nY):
             zc = zCol[nX*i:nX*(i+1)]
             n  = zc.shape[0]
@@ -82,7 +82,7 @@ def getUniqueSequence(vect, count):
                 unique.append(curr)
                 i += 1
 
-    return nx.array(unique)
+    return np.array(unique)
 
 def get_plot_data(data, x_name, y_name, z_expr):
     # fetch x

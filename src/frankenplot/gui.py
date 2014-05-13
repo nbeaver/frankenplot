@@ -7,8 +7,11 @@ import fnmatch
 import os.path
 import re
 import sys
+import math
 
 import matplotlib
+
+import numpy as np
 
 import wx
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
@@ -17,11 +20,14 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 import wxmpl
 import xdp
 
+from mpl_toolkits.mplot3d import Axes3D, axes3d
+
 from frankenplot import (data as fdata,
                          defaults,
                          exceptions as exc,
                          expression,
                          util,
+			 script,
                          __version__)
 from expression import ArbitraryExpression, ChannelExpression, RefExpression, ROIExpression, SampleExpression, TransExpression
 
@@ -628,29 +634,32 @@ class TransControlsPanel(PlotControlPanel):
             self._init_gui_elements()
 
         def _init_gui_elements(self):
-            box = wx.StaticBox(self, wx.ID_ANY, "Custom Columns")
+            box = wx.StaticBox(self, wx.ID_ANY, "Column Ratio Expression")
             sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-            grid = wx.GridBagSizer(3, 2)
+            grid = wx.GridBagSizer(4, 2)
 
             cols = ["$" + col for col in self.app.columns]
             groups = self.app.groups.keys()
             choices = util.natural_sort(cols + groups)
 
-            # I_o
-            grid.Add(wx.StaticText(self, wx.ID_ANY, "Io:"), (0,0),
-                    flag=wx.ALIGN_CENTER_VERTICAL)
-            self.io_cb = wx.ComboBox(self, choices=choices, size=(150, 27))
-            grid.Add(self.io_cb, (0,1))
-
             # I_t
-            grid.Add(wx.StaticText(self, wx.ID_ANY, "It:"), (1,0),
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Numerator:"), (0,0),
                     flag=wx.ALIGN_CENTER_VERTICAL)
             self.it_cb = wx.ComboBox(self, choices=choices, size=(150, 27))
-            grid.Add(self.it_cb, (1,1))
+            grid.Add(self.it_cb, (0,1))
+
+            # I_o
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Denominator:"), (1,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.io_cb = wx.ComboBox(self, choices=choices, size=(150, 27))
+            grid.Add(self.io_cb, (1,1))
+
+            self.log_cb = wx.CheckBox(self, wx.ID_ANY, "take logarithm")
+            grid.Add(self.log_cb, (2,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
             self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
-            grid.Add(self.plot_btn, (2,1), span=(1,2))
+            grid.Add(self.plot_btn, (3,1), span=(1,2))
 
             sizer.Add(grid)
             self.SetSizer(sizer)
@@ -663,7 +672,14 @@ class TransControlsPanel(PlotControlPanel):
 
             self.parent._set_custom_values(Io, It)
 
-            expr = TransExpression(Io, It)
+            if self.log_cb.IsChecked():
+                expr_str = defaults.trans_mode.log_expr
+            else:
+                expr_str = defaults.trans_mode.scalar_expr
+
+            expr_str = expr_str % dict(Io="$"+Io, It="$"+It)
+
+            expr = ArbitraryExpression(expr_str)
             self.app.plot(expr)
 
         def OnPlot(self, e):
@@ -709,17 +725,31 @@ class TransControlsPanel(PlotControlPanel):
 
         self._init_gui_elements()
 
-        # start in sample mode by default
-        self.mode = self.SAMPLE_MODE
-        self._set_custom_values(defaults.trans_mode.samp_mode.Io,
+        # start in column mode by default
+        self.mode = self.CUSTOM_COLS_MODE
+
+        # find suitable columns to use
+        cols = ["$" + col for col in self.app.columns]
+        groups = self.app.groups.keys()
+        choices = util.natural_sort(cols + groups)
+
+        if len(choices) <= 1:
+            print "Warning: not enough columns in this datafile!\n"
+
+        if ("$"+defaults.trans_mode.samp_mode.Io in choices) and ("$"+defaults.trans_mode.samp_mode.It in choices):
+            self._set_custom_values(defaults.trans_mode.samp_mode.Io,
                                 defaults.trans_mode.samp_mode.It)
+        else:
+            self._set_custom_values((choices[0])[1:],(choices[1])[1:])
 
     def _init_gui_elements(self):
-        panel = self.panel = wx.Panel(parent=self, id=wx.ID_ANY)
+    	panel = self.panel = wx.Panel(parent=self, id=wx.ID_ANY)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer = sizer
 
+        #these are no longer options
+        """
         # sample transmission
         self.samp_rb = wx.RadioButton(panel, wx.ID_ANY, "Sample transmission",
                 style=wx.RB_GROUP)
@@ -730,23 +760,26 @@ class TransControlsPanel(PlotControlPanel):
         self.ref_rb = wx.RadioButton(panel, wx.ID_ANY, "Reference transmission")
         self.Bind(wx.EVT_RADIOBUTTON, self.OnRefMode, self.ref_rb)
         sizer.Add(self.ref_rb)
+        """
 
+        """
         # custom columns
         self.custom_cols_rb = wx.RadioButton(self.panel, wx.ID_ANY, "Custom columns")
         self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomColsMode, self.custom_cols_rb)
         sizer.Add(self.custom_cols_rb)
+        """
 
         self.custom_cols_panel = self.CustomColsPanel(self, wx.ID_ANY, self.app)
-        self.custom_cols_panel.Disable()
         sizer.Add(self.custom_cols_panel, flag=wx.EXPAND)
 
+        """
         # custom expression
         self.custom_expr_rb = wx.RadioButton(panel, wx.ID_ANY, "Custom expression")
         self.Bind(wx.EVT_RADIOBUTTON, self.OnCustomExprMode, self.custom_expr_rb)
         self.sizer.Add(self.custom_expr_rb)
+        """
 
         self.custom_expr_panel = self.CustomExprPanel(self, wx.ID_ANY, self.app)
-        self.custom_expr_panel.Disable()
         self.sizer.Add(self.custom_expr_panel)
 
         # size and fit
@@ -782,7 +815,15 @@ class TransControlsPanel(PlotControlPanel):
     def _set_custom_values(self, Io, It):
         Io = "$" + Io
         It = "$" + It
-        expr = defaults.trans_mode.expr % dict(Io=Io, It=It)
+
+        print "Io, It:", Io, It
+
+        if self.custom_cols_panel.log_cb.IsChecked():
+            expr = defaults.trans_mode.log_expr
+        else:
+            expr = defaults.trans_mode.scalar_expr
+
+        expr = expr % dict(Io=Io, It=It)
         self.custom_cols_panel.io_cb.SetValue(Io)
         self.custom_cols_panel.it_cb.SetValue(It)
         self.custom_expr_panel.expr_txt.SetValue(expr)
@@ -897,6 +938,246 @@ class CMapControlsPanel(PlotControlPanel):
 
 # ============================================================================
 
+class ScriptControlsPanel(PlotControlPanel):
+    """Controls for Script Mode
+
+    """
+
+    class ScanInfoPanel(wx.Panel):
+        def __init__(self, parent, id, app, **kwargs):
+            wx.Panel.__init__(self, parent, id, **kwargs)
+
+	    #flag to lock the data so it cannot change
+	    self.locked = False
+
+            self.parent = parent
+            self.app = app
+
+            self._init_gui_elements()
+
+        def _init_gui_elements(self):
+            box = wx.StaticBox(self, wx.ID_ANY, "Scan Info")
+            sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+            grid = wx.GridBagSizer(3, 2)
+
+            # Scan Name
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Scan:"), (0,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.scan_txt = wx.TextCtrl(self, size=(150, 27.5),
+                    style=wx.TE_PROCESS_ENTER)
+	    self.scan_txt.Bind(wx.EVT_TEXT, self.OnScanChange)
+            grid.Add(self.scan_txt, (0,1))
+
+            # X
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "X:"), (1,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.x_txt = wx.TextCtrl(self, size=(150, 27.5),
+                    style=wx.TE_PROCESS_ENTER)
+	    self.x_txt.Bind(wx.EVT_TEXT, self.OnXChange)
+            grid.Add(self.x_txt, (1,1))
+
+            # Y
+            grid.Add(wx.StaticText(self, wx.ID_ANY, "Y:"), (2,0),
+                    flag=wx.ALIGN_CENTER_VERTICAL)
+            self.y_txt = wx.TextCtrl(self, size=(150, 27.5),
+                    style=wx.TE_PROCESS_ENTER)
+	    self.y_txt.Bind(wx.EVT_TEXT, self.OnYChange)
+            grid.Add(self.y_txt, (2,1))
+
+            sizer.Add(grid)
+            self.SetSizer(sizer)
+            sizer.Fit(self)
+
+	    # bind key event to retreive mouse postion for script generation
+	    wxmpl.EVT_POINT(self.app.main_window.plot_panel, self.app.main_window.plot_panel.GetId(), self.onPoint)
+
+        def _plot(self):
+            # remove the preceding dollar signs
+            Io = self.io_cb.GetValue()[1:]
+            It = self.it_cb.GetValue()[1:]
+
+            self.parent._set_custom_values(Io, It)
+
+            expr = TransExpression(Io, It)
+            self.app.plot(expr)
+
+        def OnPlot(self, e):
+            self._plot()
+
+	#triggered when the user selects a point to scan script mode
+	def onPoint(self, event):
+	    self.x_txt.SetValue(str(math.floor(event.xdata)))
+	    self.y_txt.SetValue(str(math.floor(event.ydata)))
+
+	def RetrieveData(self):
+	    self.scan_txt.SetValue(self.app.current_scan.scan)
+	    self.x_txt.SetValue(str(self.app.current_scan.x))
+	    self.y_txt.SetValue(str(self.app.current_scan.y))
+
+	def OnScanChange(self, event):
+	    self.app.current_scan.scan = self.scan_txt.GetValue()
+
+	    selection = self.parent.scan_box.GetSelection()
+
+	    self.parent.scan_box.SetString(selection, str(selection) + ": " +
+	       self.app.current_scan.scan + " (" + str(self.app.current_scan.x) + ", " + str(self.app.current_scan.x) + ")")
+
+	    self.app.scan_script.default_name = self.app.current_scan.scan
+
+	def OnXChange(self, event):
+	    try:
+		value = float(self.x_txt.GetValue())
+		self.app.current_scan.x = value
+	    except ValueError:
+		pass
+
+	    self.OnScanChange(None)
+	
+
+	def OnYChange(self, event):
+	    try:
+		value = float(self.y_txt.GetValue())
+		self.app.current_scan.y = value
+	    except ValueError:
+		pass
+
+	    self.OnScanChange(None)
+
+    def __init__(self, parent, id, app, **kwargs):
+        PlotControlPanel.__init__(self, parent, id, app, **kwargs)
+
+        self._init_gui_elements()
+
+    def _init_gui_elements(self):
+        panel = wx.Panel(self, wx.ID_ANY)
+
+	grid = wx.GridBagSizer()
+
+        #grid = wx.GridBagSizer()
+
+	# make a choice box with all of the diferent scans in it
+	scan_choices = self.app.scan_script.ChoiceList()
+	self.scan_box = wx.ListBox(self, choices=scan_choices, size = (230, 100), style = wx.LB_SINGLE)
+        grid.Add(self.scan_box, (0,0))
+
+	# register selections of the choice box
+	self.scan_box.Bind(wx.EVT_LISTBOX, self.OnChoiceScan)
+
+	self.scan_info_panel = self.ScanInfoPanel(self, wx.ID_ANY, self.app)
+        #self.scan_info_panel.Disable()
+        grid.Add(self.scan_info_panel, (1,0))
+
+	btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.add_button = wx.Button(self, label="Add New",size=(100,27))
+	self.add_button.Bind(wx.EVT_BUTTON, self.OnAddNewScan)
+	btn_sizer.Add(self.add_button)
+
+	#bind the main window menu item to this
+	self.app.main_window.Bind(wx.EVT_MENU, self.OnAddNewScan, self.app.main_window.add_new_scan_item)
+
+        self.clear_button = wx.Button(self, label="Clear All",size=(100,27))
+	self.clear_button.Bind(wx.EVT_BUTTON, self.OnClearScript)
+	btn_sizer.Add(self.clear_button)
+
+	grid.Add(btn_sizer, (2,0))
+
+        grid.Add(wx.StaticText(self, wx.ID_ANY, "Filename:\n(leave blank for file selector dialog)"), (3,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.filename_txt = wx.TextCtrl(self, size=(150, 27.5),
+       	    style=wx.TE_PROCESS_ENTER)
+	grid.Add(self.filename_txt, (4,0))
+
+        self.write_to_file_button = wx.Button(self, label="Write Script to File",size=(150,27))
+	self.write_to_file_button.Bind(wx.EVT_BUTTON, self.OnWriteFile)
+	grid.Add(self.write_to_file_button, (5,0))
+
+	#sizer.Add(grid,flag=wx.EXPAND)
+        #self.SetSizer(sizer)
+	self.SetSizer(grid)
+        self.Fit()
+
+    def _plot(self):
+	pass
+
+    def OnPlot(self, e):
+        self._plot()
+
+    def OnChoiceScan(self, event):
+	selection = self.scan_box.GetSelection()
+	if selection < 0:
+	    return
+
+	self.app.current_scan = self.app.scan_script.scans[selection]
+
+	self.ResetScanList(selection)
+
+    def OnAddNewScan(self, event):
+	self.app.current_scan = self.app.scan_script.AddNewScan()
+
+	self.ResetScanList(self.scan_box.GetCount())
+
+    def ResetScanList(self, selection_number):
+	self.scan_box.Clear()
+
+	scan_list = self.app.scan_script.ChoiceList()
+
+	for scan in scan_list:
+	    self.scan_box.Append(scan)
+
+	self.scan_box.SetSelection(selection_number)
+
+	# reset the panel to reflect the selected scan
+	self.scan_info_panel.RetrieveData()	
+
+    def OnClearScript(self, event):
+	self.app.current_scan = self.app.scan_script.ClearAllScans()
+
+	self.ResetScanList(0)
+
+    def OnWriteFile(self, event):
+	#try to get filename from this text window
+	filename = self.filename_txt.GetValue()
+
+	#if the filename from the textbox is empty, open a file name chooser window
+	if filename == "":
+	    filename = wx.FileSelector('Save Script',
+		parent=self, flags=wx.SAVE|wx.OVERWRITE_PROMPT)
+
+	# if the filename chooser window fails, just return with and error message box
+	if not filename:
+            wx.MessageBox('did not save script file', 'script',
+                parent=self, style=wx.OK)
+	    return
+
+        try:
+	    script_file = open(filename, 'w')
+
+	    script_file.write(self.app.scan_script.ToString())
+
+	    script_file.close()
+        except IOError, e:
+            if e.strerror:
+                err = e.strerror
+            else:
+                err = e
+
+            wx.MessageBox('Could not save file: %s' % err, 'Error - script',
+                parent=self, style=wx.OK|wx.ICON_ERROR)
+
+	    return
+
+        wx.MessageBox('file saved: ' + filename, 'Success - script',
+                parent=self, style=wx.OK)
+	
+	return
+
+    def OnPageSelected(self, e):
+        self._plot()
+
+# ============================================================================
+
 class PlotControlsFrame(wx.Frame):
     def __init__(self, parent, id, app, size=(250,350), **kwargs):
         wx.Frame.__init__(self, parent, id, title="Plot Controls", size=size, **kwargs)
@@ -908,9 +1189,15 @@ class PlotControlsFrame(wx.Frame):
 
 class PlotControlsCB(wx.Choicebook):
     PAGES = (
+	("Transmission Mode", TransControlsPanel),
         ("Fluorescence Mode", FluorControlsPanel),
-        ("Transmission Mode", TransControlsPanel),
         ("Colormap Mode", CMapControlsPanel),
+	("Script Mode", ScriptControlsPanel),
+    )
+
+    PAGES = (
+	("Expression Mode", TransControlsPanel),
+	("Script Mode", ScriptControlsPanel),
     )
 
     def __init__(self, parent, id, app):
@@ -951,6 +1238,69 @@ class PlotControlsCB(wx.Choicebook):
 
 # ============================================================================
 
+class PlotBoundsDialog(wx.Dialog):
+    def __init__(self, parent, id, app, **kwargs):
+        wx.Dialog.__init__(self, parent, id, "Set Plot Range", **kwargs)
+
+        #retain reference to app
+        self.app = app
+
+        # set sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+	sizer = wx.BoxSizer(wx.HORIZONTAL)
+	sizer.Add(wx.StaticText(self, wx.ID_ANY, "Upper Bounds: "))
+        self.upper_txt = wx.TextCtrl(self, size=(150, 27.5))
+	self.upper_txt.SetValue(str(self.app.plot_panel.plot_opts["upper_bound"]))
+	sizer.Add(self.upper_txt)
+	main_sizer.Add(sizer)
+
+	sizer = wx.BoxSizer(wx.HORIZONTAL)
+	sizer.Add(wx.StaticText(self, wx.ID_ANY, "Lower Bounds: "))
+        self.lower_txt = wx.TextCtrl(self, size=(150, 27.5))
+	self.lower_txt.SetValue(str(self.app.plot_panel.plot_opts["lower_bound"]))
+	sizer.Add(self.lower_txt)
+	main_sizer.Add(sizer)
+
+        self.clear_button = wx.Button(self, label="Clear Bounds",size=(150,27))
+	self.clear_button.Bind(wx.EVT_BUTTON, self.OnClearBounds)
+	main_sizer.Add(self.clear_button)
+
+	sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.cancel_button = wx.Button(self, label="Cancel",size=(75,27))
+	self.cancel_button.Bind(wx.EVT_BUTTON, self.OnCancel)
+	sizer.Add(self.cancel_button)
+        self.ok_button = wx.Button(self, label="OK",size=(75,27))
+	self.ok_button.Bind(wx.EVT_BUTTON, self.OnOK)
+	sizer.Add(self.ok_button)
+	main_sizer.Add(sizer)
+
+        #set sizer
+        self.SetSizer(main_sizer)
+        main_sizer.Fit(self)
+
+    def SafeFloat(self, string):
+	try:
+	    return float(string)
+	except ValueError:
+	    return None
+
+    def OnClearBounds(self, event):
+	self.upper_bound = None
+	self.lower_bound = None
+
+	self.EndModal(wx.ID_OK)
+
+    def OnOK(self, event):
+	self.upper_bound = self.SafeFloat(self.upper_txt.GetValue())
+	self.lower_bound = self.SafeFloat(self.lower_txt.GetValue())
+
+	self.EndModal(wx.ID_OK)
+
+    def OnCancel(self, event):
+	self.EndModal(wx.ID_CANCEL)
+
+# ============================================================================
 
 class PlotPanel(wxmpl.PlotPanel):
     def __init__(self, parent, id, data, app, *args, **kwargs):
@@ -965,9 +1315,27 @@ class PlotPanel(wxmpl.PlotPanel):
         self.plot_opts = dict()
         self.roi_plot_opts = dict()
 
+        self.axes_2d = None
+        self.axes_3d = None
+
+        self.axes = None
+
+        self.frame_3d = wx.Frame(self,wx.ID_ANY, title = "3D Window",*args,**kwargs)
+        self.panel_3d = wxmpl.PlotPanel(self.frame_3d, wx.ID_ANY,*args,**kwargs)
+
+        # lay out frame of 3d frame
+        sizer = wx.GridBagSizer()
+        sizer.Add(self.panel_3d, pos=(1,1))
+        self.SetSizer(sizer)
+        self.Fit()
+
+        self.frame_3d.Show(False)
+
         # colorbar instance variables
         self.img = None
         self.cb = None
+
+        self.first_time = True
 
     def plot(self, z_expr, **kwargs):
         x_name = kwargs.pop("x_name", defaults.x_name)
@@ -975,79 +1343,137 @@ class PlotPanel(wxmpl.PlotPanel):
         title = kwargs.pop("title", defaults.title)
         colormap = kwargs.pop("colormap", defaults.colormap)
         groups = kwargs.pop("groups", self.app.groups)
+        mode_3d = kwargs.pop("mode_3d", False)
+        yaw_3d = kwargs.pop("yaw_3d",30.0)
+        pitch_3d = kwargs.pop("pitch_3d",60.0)
+        upper_bound = kwargs.pop("upper_bound",None)
+        lower_bound = kwargs.pop("lower_bound",None)
 
-        # get string form of expression
-        z_expr_s = str(z_expr)
-
-        # replace groups in the expression with their constituent columns
-        z_expr_s = expression.expand_groups(z_expr_s, groups)
-        print z_expr_s
-
-        # get the plot data
-        x, y, z = None, None, None
+        # attempt to read file again
         try:
-            x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr_s)
-        except xdp.errors.ColumnNameError, e:
-            msg = "No such column in data file: '%s'" % e
-            title = "Plot Error"
+            self.app.hdr, self.app.data = xdp.io.readFile(self.app.filename)
+        except IOError, e:
+            if e.strerror:
+                util.fatal_error('could not load `%s\': %s', self.app.filename, e.strerror)
+            else:
+                util.fatal_error('could not load `%s\': %s', self.app.filename, e)
 
-            dlg = wx.MessageDialog(self, msg, title, wx.OK|wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
+	    #remove negative numbers from the data in order to prevent taking the logarithm of a negative number
+        util.remove_negatives(self.app.data)
 
-            raise
+        if not self.first_time:
+            # get string form of expression
+            z_expr_s = str(z_expr)
 
-        # set up axes
-        fig = self.get_figure()
-        axes = fig.gca()
+            # replace groups in the expression with their constituent columns
+            z_expr_s = expression.expand_groups(z_expr_s, groups)
+            print z_expr_s
 
-        if matplotlib.__version__ >= '0.81':
-            axes.yaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
-            axes.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
+            # get the plot data
+            x, y, z = None, None, None
+            try:
+                x, y, z = fdata.get_plot_data(self.app.data, x_name, y_name, z_expr_s)
+            except xdp.errors.ColumnNameError, e:
+                msg = "No such column in data file: '%s'" % e
+                title = "Plot Error"
 
-            axes.xaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
-            axes.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
+                dlg = wx.MessageDialog(self, msg, title, wx.OK|wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
 
-        axes.set_title(title)
-        axes.set_ylabel(y_name)
+                raise 
 
-        # plot the data and colorbar
-        extent = min(x), max(x), min(y), max(y)
+            #constrain data to be within the upper and lower bounds
+            if not upper_bound == None:
+                z[z>upper_bound] = upper_bound
+            if not lower_bound == None:
+                z[z<lower_bound] = lower_bound
 
-        # if we're replotting the image, update the colorbar
-        if self.img:
-            # we need to update both the image's data and the colorbar's data
-            self.img.set_data(z)
-            self.cb.set_array(z)
+            #show or hide 3d window
+            self.frame_3d.Show(mode_3d)
 
-            # update the colormap
-            self.img.set_cmap(getattr(matplotlib.cm, colormap))
+            if mode_3d:
+                fig = self.panel_3d.get_figure()
+                fig.clear()
 
-            # recalculate limits of the colorbar
-            self.cb.autoscale()
+                #if self.axes_3d == None:
+                self.axes_3d = Axes3D(fig, elev = pitch_3d, azim = yaw_3d)
 
-            # redraw the image
-            self.img.changed()
+                axes = self.axes_3d
 
-        # otherwise, create a new colorbar
-        else:
-            self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
-                        origin='lower', aspect='equal', interpolation='nearest',
-                        extent=extent)
-            self.cb = fig.colorbar(self.img, cax=None, orientation='vertical')
+                #prepare x and y arrays for the 3d surface plot
+                x_grid, y_grid = np.meshgrid(x,y)
+                #do surface plot
+                surf = axes.plot_surface(x_grid,y_grid,z, rstride = int(math.ceil(len(x)/25.0)), cstride = int(math.ceil(len(y)/25.0)), cmap=colormap)
 
-        # force a redraw of the figure
-        axes.figure.canvas.draw()
+                axes.set_title(title)
+                axes.set_ylabel(y_name)
 
-        # call on_plot callback
-        z_expr.on_plot(fig, self.app)
+                # force a redraw of the figure
+                axes.figure.canvas.draw()
+            
+            fig = self.get_figure()
+
+            if self.axes_2d == None:
+                self.axes_2d = fig.gca()
+
+            axes = self.axes_2d
+
+            if matplotlib.__version__ >= '0.81':
+                axes.yaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
+                axes.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(5))
+
+                axes.xaxis.set_major_formatter(matplotlib.ticker.OldScalarFormatter())
+                axes.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(3))
+
+            # plot the data and colorbar
+            extent = min(x), max(x), min(y), max(y)
+
+            # if we're replotting the image, update the colorbar
+            if self.img:
+                # we need to update both the image's data and the colorbar's data
+                self.img.set_data(z)
+                self.img.set_extent(extent)
+                self.cb.set_array(z)
+
+                # update the colormap
+                self.img.set_cmap(getattr(matplotlib.cm, colormap))
+
+                # recalculate limits of the colorbar
+                self.cb.autoscale()
+
+                # redraw the image
+                self.img.changed()
+
+            # otherwise, create a new colorbar
+            else:
+                self.img = axes.imshow(z, cmap=getattr(matplotlib.cm, colormap),
+                            origin='lower', aspect='equal', interpolation='nearest',
+                            extent=extent)
+                self.cb = fig.colorbar(self.img, cax=None, orientation='vertical')
+
+            axes.set_title(title)
+            axes.set_ylabel(y_name)
+
+            # force a redraw of the figure
+            axes.figure.canvas.draw()
+
+            # call on_plot callback
+            z_expr.on_plot(fig, self.app)
+        self.first_time = False
 
         # save current plot parameters for later retrieval
+        self.plot_opts["first_time"] = False
         self.plot_opts["x_name"] = x_name
         self.plot_opts["y_name"] = y_name
         self.plot_opts["z_expr"] = z_expr
         self.plot_opts["colormap"] = colormap
         self.plot_opts["title"] = title
+        self.plot_opts["mode_3d"] = mode_3d
+        self.plot_opts["yaw_3d"] = yaw_3d
+        self.plot_opts["pitch_3d"] = pitch_3d
+        self.plot_opts["upper_bound"] = upper_bound
+        self.plot_opts["lower_bound"] = lower_bound
 
     def change_plot(self, **kwargs):
         """Update the current plot with the given parameters.
@@ -1112,8 +1538,8 @@ class MainWindow(wx.Frame):
         self._create_menus()
 
         # lay out frame
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.plot_panel, proportion=1)
+        sizer = wx.GridBagSizer()
+        sizer.Add(self.plot_panel, pos=(1,1))
         self.SetSizer(sizer)
         self.Fit()
 
@@ -1191,6 +1617,19 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnMenuSelectColumns, item)
         item.Enable(False)
 
+        editMenu.AppendSeparator()
+
+        #ADD NEW SCAN menu item shortcut, see script panel.init_gui
+        item = editMenu.Append(wx.ID_ANY, "&Add New Script\tCtrl+A",
+            "Edit channels")
+        self.add_new_scan_item = item
+        # this is bound at script_panel.init_gui
+
+        item = editMenu.Append(id=wx.ID_ANY, text="Plot &Range...\tCtrl+R",
+                help="Edit plotting range")
+        self.Bind(wx.EVT_MENU, self.OnMenuEditRange, item)
+
+
         # View menu
         view_menu = wx.Menu()
         menuBar.Append(view_menu, "&View")
@@ -1200,6 +1639,28 @@ class MainWindow(wx.Frame):
         item.Check(True)
         self.Bind(wx.EVT_MENU, self.OnMenuViewPlotControls, item)
         self.view_plot_ctrls_item = item
+
+        item = view_menu.Append(wx.ID_ANY, "Plot 3&D",
+                help="Toggle 3D View", kind=wx.ITEM_CHECK)
+        item.Check(False)
+        self.Bind(wx.EVT_MENU, self.OnMenuViewPlot3D, item)
+        self.view_plot_3d_item = item
+
+        item = view_menu.Append(wx.ID_ANY, "Move 3D Camera &Right\tCtrl-L",
+            "yaw 3d camera 30 degrees to the right")
+        self.Bind(wx.EVT_MENU, self.OnMenuViewRight, item)
+
+        item = view_menu.Append(wx.ID_ANY, "Move 3D Camera &Left\tCtrl-J",
+            "yaw 3d camera 30 degrees to the left")
+        self.Bind(wx.EVT_MENU, self.OnMenuViewLeft, item)
+
+        item = view_menu.Append(wx.ID_ANY, "Move 3D Camera &Up\tCtrl-I",
+            "pitch 3d camera 30 degrees up")
+        self.Bind(wx.EVT_MENU, self.OnMenuViewUp, item)
+
+        item = view_menu.Append(wx.ID_ANY, "Move 3D Camera &Down\tCtrl-K",
+            "pitch 3d camera 30 degrees down")
+        self.Bind(wx.EVT_MENU, self.OnMenuViewDown, item)
 
         # Help menu
         helpMenu = wx.Menu()
@@ -1286,7 +1747,7 @@ class MainWindow(wx.Frame):
     def OnMenuEditPlotTitle(self, e):
         message = "Plot Title:"
         title = "Edit Plot Title"
-        value = self.app.plot_panel.plot_opts["title"]
+        value = str(self.app.plot_panel.plot_opts["title"])
 
         dlg = wx.TextEntryDialog(self, message, title, value)
 
@@ -1295,8 +1756,35 @@ class MainWindow(wx.Frame):
 
         dlg.Destroy()
 
+    def OnMenuEditRange(self, e):
+        dlg = PlotBoundsDialog(self, wx.ID_ANY, self.app)
+
+        if (dlg.ShowModal() == wx.ID_OK):
+	    self.app.plot_panel.change_plot(upper_bound = dlg.upper_bound, lower_bound = dlg.lower_bound)
+
+        dlg.Destroy()
+
     def OnMenuViewPlotControls(self, e):
         self.app.plot_ctrls.Show(self.view_plot_ctrls_item.IsChecked())
+
+    def OnMenuViewPlot3D(self, e):
+        self.app.plot_panel.change_plot(mode_3d = self.view_plot_3d_item.IsChecked())
+
+    def OnMenuViewRight(self, e):
+        value = self.app.plot_panel.plot_opts["yaw_3d"]
+        self.app.plot_panel.change_plot(yaw_3d=value + 30.0)
+
+    def OnMenuViewLeft(self, e):
+        value = self.app.plot_panel.plot_opts["yaw_3d"]
+        self.app.plot_panel.change_plot(yaw_3d=value - 30.0)
+
+    def OnMenuViewUp(self, e):
+        value = self.app.plot_panel.plot_opts["pitch_3d"]
+        self.app.plot_panel.change_plot(pitch_3d=value + 30.0)
+
+    def OnMenuViewDown(self, e):
+        value = self.app.plot_panel.plot_opts["pitch_3d"]
+        self.app.plot_panel.change_plot(pitch_3d=value - 30.0)
 
     def OnMenuEditColormap(self, e):
         message = "Choose colormap:"
@@ -1320,6 +1808,31 @@ class MainWindow(wx.Frame):
         return self.plot_panel.plot(*args, **kwargs)
 
 # ============================================================================
+"""
+class 3DViewWindow(wx.Frame):
+    def __init__(self, parent, id, title, data, app, **kwargs):
+        wx.Frame.__init__(self, parent, id, title, **kwargs)
+
+        # retain reference to App
+        self.app = app
+
+        # initialise subpanels
+        self.plot_panel = PlotPanel(parent=self, id=wx.ID_ANY, data=data, app=app)
+
+        # add subpanels to App namespace
+        self.app.plot_panel = self.plot_panel
+
+        # misc initialisation
+        self._initialise_printer()
+        self._create_menus()
+
+        # lay out frame
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.plot_panel, proportion=1)
+        self.SetSizer(sizer)
+        self.Fit()
+"""
+# ============================================================================
 
 class PlotApp(wx.App):
     def __init__(self, filename=None, **kwargs):
@@ -1340,6 +1853,9 @@ class PlotApp(wx.App):
             self.hdr = None
             self.data = None
 
+	    #remove negative numbers from the data in order to prevent taking the logarithm of a negative number
+        util.remove_negatives(self.data)
+
         self.columns = self.data.getColumnNames()
 
         # self.rois is a dict: 'roi' => list (of columns)
@@ -1355,6 +1871,10 @@ class PlotApp(wx.App):
         # create the ROI groups
         self._create_roi_groups(self.rois, corrected=False)
         self._create_roi_groups(self.corr_rois, corrected=True)
+
+	    # create scan script
+        self.scan_script = script.Script()
+        self.current_scan = self.scan_script.AddNewScan()
 
         wx.App.__init__(self, **kwargs)
 
