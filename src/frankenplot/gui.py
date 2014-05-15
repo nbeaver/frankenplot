@@ -657,6 +657,9 @@ class TransControlsPanel(PlotControlPanel):
             self.log_cb = wx.CheckBox(self, wx.ID_ANY, "take logarithm")
             grid.Add(self.log_cb, (2,1))
 
+            self.log_cb = wx.CheckBox(self, wx.ID_ANY, "autoplot")
+            grid.Add(self.log_cb, (2,1))
+
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
             self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
             grid.Add(self.plot_btn, (3,1), span=(1,2))
