@@ -636,7 +636,7 @@ class TransControlsPanel(PlotControlPanel):
         def _init_gui_elements(self):
             box = wx.StaticBox(self, wx.ID_ANY, "Column Ratio Expression")
             sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-            grid = wx.GridBagSizer(4, 2)
+            grid = wx.GridBagSizer(5, 2)
 
             cols = ["$" + col for col in self.app.columns]
             groups = self.app.groups.keys()
@@ -658,11 +658,11 @@ class TransControlsPanel(PlotControlPanel):
             grid.Add(self.log_cb, (2,1))
 
             self.log_cb = wx.CheckBox(self, wx.ID_ANY, "autoplot")
-            grid.Add(self.log_cb, (2,1))
+            grid.Add(self.log_cb, (3,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
             self.Bind(wx.EVT_BUTTON, self.OnPlot, self.plot_btn)
-            grid.Add(self.plot_btn, (3,1), span=(1,2))
+            grid.Add(self.plot_btn, (4,1), span=(1,2))
 
             sizer.Add(grid)
             self.SetSizer(sizer)
