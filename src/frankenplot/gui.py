@@ -658,10 +658,10 @@ class TransControlsPanel(PlotControlPanel):
             grid.Add(self.log_cb, (2,1))
 
             # Need a timer to automatically replot
-            self.timer = wx.Timer(self)
-            self.Bind(wx.EVT_TIMER, self.OnPlot, self.timer)
+            self.autoplotTimer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.OnPlot, self.autoplotTimer)
             self.autoplot_cb = wx.CheckBox(self, wx.ID_ANY, "autoplot")
-            self.autoplot_cb.Bind(wx.EVT_CHECKBOX, self.onToggle)
+            self.autoplot_cb.Bind(wx.EVT_CHECKBOX, self.toggleAutoplot)
             grid.Add(self.autoplot_cb, (3,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
@@ -672,13 +672,12 @@ class TransControlsPanel(PlotControlPanel):
             self.SetSizer(sizer)
             sizer.Fit(self)
 
-        def onToggle(self, event):
-            checkbox = self.autoplot_cb
-            if checkbox.IsChecked():
+        def toggleAutoplot(self, event):
+            if self.autoplot_cb.IsChecked():
                 every_second = 1000 # 1000 milliseconds
-                self.timer.Start(every_second)
+                self.autoplotTimer.Start(every_second)
             else:
-                self.timer.Stop()
+                self.autoplotTimer.Stop()
 
         def _plot(self):
             # remove the preceding dollar signs
