@@ -657,7 +657,11 @@ class TransControlsPanel(PlotControlPanel):
             self.log_cb = wx.CheckBox(self, wx.ID_ANY, "take logarithm")
             grid.Add(self.log_cb, (2,1))
 
+            # Need a timer to automatically replot
+            self.timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.OnPlot, self.timer)
             self.autoplot_cb = wx.CheckBox(self, wx.ID_ANY, "autoplot")
+            self.autoplot_cb.Bind(wx.EVT_CHECKBOX, self.onToggle)
             grid.Add(self.autoplot_cb, (3,1))
 
             self.plot_btn = wx.Button(self, wx.ID_ANY, "Plot")
@@ -667,6 +671,17 @@ class TransControlsPanel(PlotControlPanel):
             sizer.Add(grid)
             self.SetSizer(sizer)
             sizer.Fit(self)
+
+        def onToggle(self, event):
+            checked = True
+            unchecked = False
+            if self.isChecked():
+                every_second = 1000 # 1000 milliseconds
+                self.timer.Start(every_second)
+                self.SetValue(checked)
+            else:
+                self.timer.Stop()
+                self.SetValue(unchecked)
 
         def _plot(self):
             # remove the preceding dollar signs
