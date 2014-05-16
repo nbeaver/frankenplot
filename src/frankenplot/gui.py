@@ -673,15 +673,12 @@ class TransControlsPanel(PlotControlPanel):
             sizer.Fit(self)
 
         def onToggle(self, event):
-            checked = True
-            unchecked = False
-            if self.isChecked():
+            checkbox = self.autoplot_cb
+            if checkbox.IsChecked():
                 every_second = 1000 # 1000 milliseconds
                 self.timer.Start(every_second)
-                self.SetValue(checked)
             else:
                 self.timer.Stop()
-                self.SetValue(unchecked)
 
         def _plot(self):
             # remove the preceding dollar signs
