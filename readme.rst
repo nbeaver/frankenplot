@@ -16,4 +16,4 @@ and SVN here:
 
 http://svn.csrri.iit.edu/mr-software/frankenplot/
 
-There repo also has my own additions.
+The repo also has my own additions.
