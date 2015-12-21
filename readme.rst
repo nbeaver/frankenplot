@@ -17,3 +17,19 @@ and SVN here:
 http://svn.csrri.iit.edu/mr-software/frankenplot/
 
 The repo also has my own additions.
+
+------------
+Dependencies
+------------
+
+Requires these debian packages:
+
+- ``python2.6`` or ``python2.7``
+- ``python-matplotlib``
+- ``python-wxgtk2.8``
+- ``python-wxmpl``
+- ``python-xdp``
+
+http://debian-xray.iit.edu/pool/main/p/python-xdp/
+
+http://agni.phys.iit.edu/~kmcivor/wxmpl/
